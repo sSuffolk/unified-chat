@@ -14,7 +14,7 @@
       --accent:#61afef; --tab-bg:#444; --tab-active-bg:#61afef;
       --btn-size:38px;
 
-      /* 🔎 Twitch zoom level (0.9 = zoomed out a bit). Change to 0.85/0.8 if you want more. */
+      /* 🔎 Twitch zoom level (0.9 = zoomed out slightly) */
       --twitch-zoom: 0.9;
     }
     html, body { height: calc(var(--vh) * 100); }
@@ -67,7 +67,7 @@
     /* Iframes */
     iframe{ flex:1; border:0; background:#000; }
 
-    /* 🔎 Twitch zoom wrapper (applied to both twitch iframes) */
+    /* 🔎 Twitch zoom wrapper */
     .twitch-wrap{ position:relative; overflow:hidden; width:100%; height:100%; }
     .twitch-wrap iframe{
       transform: scale(var(--twitch-zoom));
@@ -84,6 +84,16 @@
     body.reading .tab-buttons{ transform: translateY(100%); }
     body.reading .chat-wrapper{ padding-bottom: 0; }
 
+    /* Invisible hot zones to exit Reading mode */
+    .hotzone{
+      position:fixed; left:0; right:0; z-index:25; display:none;
+      /* transparent but tappable */
+      background:rgba(0,0,0,0); 
+    }
+    .hotzone.top{ top:0; height:42px; }
+    .hotzone.bottom{ bottom:0; height:52px; }
+    body.reading .hotzone{ display:block; }
+
     /* Modals */
     .modal{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:40; }
     .modal.open{ display:flex; }
@@ -95,6 +105,10 @@
   </style>
 </head>
 <body>
+  <!-- Invisible tap zones appear ONLY in Reading mode to restore UI -->
+  <div id="hz-top" class="hotzone top" aria-hidden="true"></div>
+  <div id="hz-bottom" class="hotzone bottom" aria-hidden="true"></div>
+
   <header>
     <div class="header-row">
       <div class="toolbar">
@@ -200,6 +214,9 @@ const modalPresets=document.getElementById('modal-presets');
 const modalMore=document.getElementById('modal-more');
 const qrBox=document.getElementById('qr');
 
+const hzTop=document.getElementById('hz-top');
+const hzBottom=document.getElementById('hz-bottom');
+
 /* ========== Helpers ========== */
 const parentHost=window.location.hostname||'127.0.0.1';
 const TWITCH_EMBED=(ch)=>`https://www.twitch.tv/embed/${ch}/chat?parent=${parentHost}&darkpopout`;
@@ -259,11 +276,18 @@ tabs.forEach(btn=>{
 });
 
 /* ========== Reading mode ========== */
-btnReading.onclick=()=>{
-  const on=!document.body.classList.contains('reading');
+function setReading(on){
   document.body.classList.toggle('reading',on);
   localStorage.setItem('reading',on?'1':'0');
-};
+}
+btnReading.onclick=()=> setReading(!document.body.classList.contains('reading'));
+
+/* Tap top or bottom edge to exit reading mode */
+function exitReadingIfNeeded(){
+  if(document.body.classList.contains('reading')) setReading(false);
+}
+hzTop.addEventListener('click', exitReadingIfNeeded);
+hzBottom.addEventListener('click', exitReadingIfNeeded);
 
 /* ========== Wake Lock ========== */
 let wake=null;
