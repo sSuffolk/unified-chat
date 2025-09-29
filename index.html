@@ -41,4 +41,264 @@
       display:grid; grid-template-columns: 1fr 1fr auto; gap:8px;
     }
     .controls input{
-      padding:10px; border:1px solid var(--border); border-radius:8px; background:#222; color:#fff; fon
+      padding:10px; border:1px solid var(--border); border-radius:8px; background:#222; color:#fff; font-size:15px; min-width:0;
+    }
+    .controls button.save{
+      padding:10px 14px; border:none; border-radius:8px; background:var(--accent); color:#fff; font-size:15px; cursor:pointer;
+      white-space:nowrap;
+    }
+    @media (max-width: 560px){
+      .controls{ grid-template-columns: 1fr; }
+      .controls button.save{ width:100%; }
+    }
+
+    /* Tabs */
+    .tab-buttons{
+      position:fixed; left:0; right:0; bottom:0; display:flex; background:var(--tab-bg);
+      padding-bottom: env(safe-area-inset-bottom); box-shadow:0 -2px 5px rgba(0,0,0,.15); z-index:20; height:var(--tab-h);
+    }
+    .tab-buttons button{ flex:1; border:none; background:transparent; color:#fff; font-size:15px; }
+    .tab-buttons button.active{ background:var(--tab-active); }
+
+    /* Chat area */
+    .chat-wrapper{ flex:1; display:flex; overflow:hidden; padding-bottom: var(--tab-h); }
+    .chat-container{ flex:1; display:none; flex-direction:column; }
+    .chat-container.active{ display:flex; }
+    .split{ flex:1; display:flex; gap:4px; padding:4px; }
+    @media (orientation: portrait){ .split{ flex-direction:column; } }
+    @media (orientation: landscape){ .split{ flex-direction:row; } }
+    .pane{ flex:1; display:flex; min-height:0; min-width:0; }
+
+    /* Iframes: default size, no transforms */
+    iframe{ flex:1; border:0; background:#000; width:100%; height:100%; }
+
+    .single{ flex:1; padding:4px; }
+    .single iframe{ width:100%; height:100%; }
+
+    /* Reading mode */
+    body.reading header{ display:none; }
+    body.reading .tab-buttons{ transform: translateY(100%); }
+    body.reading .chat-wrapper{ padding-bottom: 0; }
+
+    /* Hot zones to exit reading mode */
+    .hotzone{ position:fixed; left:0; right:0; z-index:25; display:none; background:rgba(0,0,0,0); }
+    .hotzone.top{ top:0; height:42px; }
+    .hotzone.bottom{ bottom:0; height:52px; }
+    body.reading .hotzone{ display:block; }
+
+    /* Modals */
+    .modal{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:40; }
+    .modal.open{ display:flex; }
+    .modal-card{ background:#111; color:#fff; padding:16px; border-radius:12px; width:min(92vw, 420px); display:flex; flex-direction:column; gap:12px; }
+    .row{ display:flex; flex-wrap:wrap; gap:8px; }
+    .row button{ flex:1; min-width:120px; padding:10px; border:none; border-radius:8px; background:#333; color:#fff; }
+    .qr-box{ background:#fff; padding:8px; border-radius:8px; align-self:center; }
+    .modal h3{ margin:0; font-size:1rem; text-align:center; }
+  </style>
+</head>
+<body>
+  <!-- Tap top or bottom while in Reading mode to restore UI -->
+  <div id="hz-top" class="hotzone top" aria-hidden="true"></div>
+  <div id="hz-bottom" class="hotzone bottom" aria-hidden="true"></div>
+
+  <header>
+    <div class="header-row">
+      <div class="toolbar">
+        <button id="btn-reading" class="icon-btn" title="Reading mode">📖</button>
+      </div>
+      <h2>YouTube/Twitch Multi Chat</h2>
+      <div class="toolbar">
+        <button id="btn-share" class="icon-btn primary" title="Share">🔗</button>
+        <button id="btn-more" class="icon-btn" title="More">⋯</button>
+      </div>
+    </div>
+    <div class="controls">
+      <input id="twitch-input" type="text" placeholder="Twitch channel"/>
+      <input id="yt-input" type="text" placeholder="YouTube LIVE URL or ID"/>
+      <button id="save-both" class="save">Save</button>
+    </div>
+  </header>
+
+  <div class="chat-wrapper">
+    <div id="both" class="chat-container active">
+      <div class="split">
+        <div class="pane">
+          <iframe id="twitch-iframe" title="Twitch Chat"></iframe>
+        </div>
+        <div class="pane">
+          <iframe id="youtube-iframe" title="YouTube Chat"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div id="twitch" class="chat-container">
+      <div class="single">
+        <iframe id="twitch-only-iframe" title="Twitch Chat (Single View)"></iframe>
+      </div>
+    </div>
+
+    <div id="youtube" class="chat-container">
+      <div class="single">
+        <iframe id="youtube-only-iframe" title="YouTube Chat (Single View)"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabs" class="tab-buttons" role="tablist" aria-label="Chat views">
+    <button class="active" data-tab="both" role="tab" aria-selected="true">Both</button>
+    <button data-tab="twitch" role="tab" aria-selected="false">Twitch</button>
+    <button data-tab="youtube" role="tab" aria-selected="false">YouTube</button>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="modal-share" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>Share</h3>
+      <div id="qr" class="qr-box"></div>
+      <div class="row"><button id="share-copy">Copy Link</button><button id="share-close">Close</button></div>
+    </div>
+  </div>
+
+  <!-- More Modal (popouts) -->
+  <div id="modal-more" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>More</h3>
+      <div class="row"><button id="popout-twitch-chat">Twitch Chat 🚀</button><button id="popout-yt-chat">YouTube Chat 🚀</button></div>
+      <div class="row"><button id="popout-twitch-stream">Twitch Stream ▶️</button><button id="popout-yt-stream">YouTube Stream ▶️</button></div>
+      <div class="row"><button id="more-close">Close</button></div>
+    </div>
+  </div>
+
+<script>
+/* Elements */
+const twitchInput=document.getElementById('twitch-input');
+const ytInput=document.getElementById('yt-input');
+const saveBtn=document.getElementById('save-both');
+
+const tabs=document.querySelectorAll('.tab-buttons button');
+const containers=document.querySelectorAll('.chat-container');
+
+const twitchIframe=document.getElementById('twitch-iframe');
+const twitchOnly=document.getElementById('twitch-only-iframe');
+const ytIframe=document.getElementById('youtube-iframe');
+const ytOnly=document.getElementById('youtube-only-iframe');
+
+const btnReading=document.getElementById('btn-reading');
+const btnShare=document.getElementById('btn-share');
+const btnMore=document.getElementById('btn-more');
+
+const modalShare=document.getElementById('modal-share');
+const modalMore=document.getElementById('modal-more');
+const qrBox=document.getElementById('qr');
+
+const hzTop=document.getElementById('hz-top');
+const hzBottom=document.getElementById('hz-bottom');
+
+/* Helpers */
+const parentHost=window.location.hostname||'127.0.0.1';
+const TWITCH_EMBED=(ch)=>`https://www.twitch.tv/embed/${ch}/chat?parent=${parentHost}&darkpopout`;
+const YT_CHAT=(id)=>`https://www.youtube.com/live_chat?v=${id}&is_popout=1&embed_domain=${parentHost}`;
+const sanitizeTwitch=(c)=>c.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase();
+function extractYtId(v){if(!v)return'';const r=/^[A-Za-z0-9_-]{11}$/;if(r.test(v))return v;const m=v.match(/(?:v=|\/)([A-Za-z0-9_-]{11})/);return m?m[1]:'';}
+
+function buildShareUrl(tw=(localStorage.getItem('twitchChannel')||''), yt=(localStorage.getItem('ytId')||'')){
+  const u=new URL(location.href);
+  if(tw) u.searchParams.set('twitch',tw); else u.searchParams.delete('twitch');
+  if(yt) u.searchParams.set('yt',yt); else u.searchParams.delete('yt');
+  return u.toString();
+}
+function applyFromUrl(){
+  const p=new URLSearchParams(location.search);
+  const tw=p.get('twitch'); const yt=p.get('yt');
+  if(tw) localStorage.setItem('twitchChannel',sanitizeTwitch(tw));
+  if(yt) localStorage.setItem('ytId',extractYtId(yt));
+}
+function updateUrl(){ history.replaceState(null,'',buildShareUrl()); }
+
+/* Load iframes (default sizes) */
+function loadChats(){
+  const tw=localStorage.getItem('twitchChannel')||'';
+  const yt=localStorage.getItem('ytId')||'';
+  if(tw){
+    const s=TWITCH_EMBED(tw);
+    if(twitchIframe.src!==s) twitchIframe.src=s;
+    if(twitchOnly.src!==s) twitchOnly.src=s;
+    twitchInput.value=tw;
+  }
+  if(yt){
+    const s=YT_CHAT(yt);
+    if(ytIframe.src!==s) ytIframe.src=s;
+    if(ytOnly.src!==s) ytOnly.src=s;
+    ytInput.value=yt;
+  }
+}
+
+/* Save */
+saveBtn.onclick=()=>{
+  const tw=sanitizeTwitch(twitchInput.value.trim());
+  const yt=extractYtId(ytInput.value.trim());
+  if(tw) localStorage.setItem('twitchChannel',tw);
+  if(yt) localStorage.setItem('ytId',yt);
+  loadChats(); updateUrl();
+};
+
+/* Tabs */
+tabs.forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    tabs.forEach(b=>{b.classList.remove('active'); b.setAttribute('aria-selected','false');});
+    containers.forEach(c=>c.classList.remove('active'));
+    btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  },{passive:true});
+});
+
+/* Reading mode + hot zones */
+function setReading(on){
+  document.body.classList.toggle('reading',on);
+  localStorage.setItem('reading',on?'1':'0');
+}
+btnReading.onclick=()=> setReading(!document.body.classList.contains('reading'));
+function exitReading(){ if(document.body.classList.contains('reading')) setReading(false); }
+hzTop.addEventListener('click', exitReading);
+hzBottom.addEventListener('click', exitReading);
+
+/* Share modal */
+btnShare.onclick=()=>{
+  modalShare.classList.add('open');
+  qrBox.innerHTML='';
+  new QRCode(qrBox,{text:buildShareUrl(),width:200,height:200});
+};
+document.getElementById('share-copy').onclick=()=>navigator.clipboard.writeText(buildShareUrl());
+document.getElementById('share-close').onclick=()=>modalShare.classList.remove('open');
+modalShare.addEventListener('click',(e)=>{ if(e.target===modalShare) modalShare.classList.remove('open'); });
+
+/* More (popouts) */
+btnMore.onclick=()=>modalMore.classList.add('open');
+document.getElementById('more-close').onclick=()=>modalMore.classList.remove('open');
+modalMore.addEventListener('click',(e)=>{ if(e.target===modalMore) modalMore.classList.remove('open'); });
+
+document.getElementById('popout-twitch-chat').onclick=()=>{
+  const tw=localStorage.getItem('twitchChannel'); if(!tw) return alert('Save a Twitch channel first.');
+  window.open(`https://www.twitch.tv/popout/${tw}/chat?popout=`,'_blank','noopener');
+};
+document.getElementById('popout-yt-chat').onclick=()=>{
+  const yt=localStorage.getItem('ytId'); if(!yt) return alert('Save your YouTube LIVE ID first.');
+  window.open(YT_CHAT(yt),'_blank','noopener');
+};
+document.getElementById('popout-twitch-stream').onclick=()=>{
+  const tw=localStorage.getItem('twitchChannel'); if(!tw) return alert('Save a Twitch channel first.');
+  window.open(`https://player.twitch.tv/?channel=${tw}&parent=${parentHost}`,'_blank','noopener');
+};
+document.getElementById('popout-yt-stream').onclick=()=>{
+  const yt=localStorage.getItem('ytId'); if(!yt) return alert('Save your YouTube LIVE ID first.');
+  window.open(`https://www.youtube.com/embed/${yt}?autoplay=1&modestbranding=1&rel=0`,'_blank','noopener');
+};
+
+/* Init */
+function setVH(){ document.documentElement.style.setProperty('--vh', `${window.innerHeight*0.01}px`); }
+applyFromUrl(); loadChats(); updateUrl();
+if(localStorage.getItem('reading')==='1') document.body.classList.add('reading');
+setVH(); window.addEventListener('resize', setVH);
+</script>
+</body>
+</html>
