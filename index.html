@@ -35,7 +35,13 @@
       box-shadow:0 2px 5px rgba(0,0,0,.2);
       position:relative; z-index:10;
     }
-    header h2{ margin:0 0 8px; font-size:1.15rem; letter-spacing:.2px; }
+    header h2{
+      margin:0 0 8px;
+      font-size:1.15rem;
+      letter-spacing:.2px;
+      text-align:center;   /* centered title */
+      width:100%;
+    }
     .controls{
       margin-bottom:8px; display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:8px;
     }
@@ -189,13 +195,14 @@
       return sanitized || DEFAULT_TWITCH_CHANNEL;
     };
     const parentHost = window.location.hostname || '127.0.0.1';
-    const TWITCH_EMBED = (channel) => `https://www.twitch.tv/embed/${channel}/chat?parent=${parentHost}`;
+    // Twitch dark mode via &darkpopout
+    const TWITCH_EMBED = (channel) => `https://www.twitch.tv/embed/${channel}/chat?parent=${parentHost}&darkpopout`;
     const YT_CHAT = (id) => 'https://www.youtube.com/live_chat?v=' + id + '&is_popout=1&embed_domain=' + (window.location.hostname || '127.0.0.1');
 
     function extractYtId(input) {
       if (!input) return '';
       const idRegex = /^[A-Za-z0-9_-]{11}$/;
-      if (idRegex.test(input)) return input;  // ✅ fixed
+      if (idRegex.test(input)) return input;
       const urlRegex = /(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|live\/|embed\/|shorts\/|v\/)?([A-Za-z0-9_-]{11})/i;
       const m = input.match(urlRegex);
       return m && m[1] ? m[1] : '';
