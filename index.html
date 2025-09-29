@@ -141,12 +141,12 @@
     const youtubeOnlyIframe = document.getElementById('youtube-only-iframe');
 
     // Constants
+      // Constants
     const TWITCH_CHANNEL = 'suffolk';
-    const HOSTNAME = window.location.hostname || '127.0.0.1'; // better fallback than 'localhost'
-    const TWITCH_BASE_URL = `https://www.twitch.tv/embed/${TWITCH_CHANNEL}/chat?parent=${HOSTNAME}`;
-    const YT_CHAT = id => `https://www.youtube.com/live_chat?is_popout=1&v=${id}`;
+    const TWITCH_BASE_URL = 'https://www.twitch.tv/embed/' + TWITCH_CHANNEL + '/chat?parent=' + (window.location.hostname || '127.0.0.1');
+   
 
-    // Extract 11-char YouTube ID from many URL shapes
+    const YT_CHAT = id => 'https://www.youtube.com/live_chat?v=' + id + '&is_popout=1&embed_domain=' + (window.location.hostname || '127.0.0.1');
     function extractYtId(input) {
       if (!input) return '';
       const idRegex = /^[A-Za-z0-9_-]{11}$/;
@@ -213,3 +213,4 @@
   </script>
 </body>
 </html>
+ 
