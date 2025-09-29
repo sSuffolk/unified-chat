@@ -10,41 +10,49 @@
     :root{
       --vh: 1vh;
       --tab-h: 48px;
-      --bg-color:#f0f0f0; --header-bg:#333; --header-text:#fff; --input-border:#555;
-      --accent:#61afef; --tab-bg:#444; --tab-active-bg:#61afef;
-      --btn-size:38px;
+      --bg:#f0f0f0; --hdr:#333; --txt:#fff; --border:#555;
+      --accent:#61afef; --tab-bg:#444; --tab-active:#61afef;
+      --btn:38px;
 
-      /* 🔎 Twitch zoom level (0.9 = zoomed out slightly) */
+      /* Twitch chat visual scale (smaller number shows more). Try 0.9 / 0.85 */
       --twitch-zoom: 0.9;
     }
     html, body { height: calc(var(--vh) * 100); }
     body{
       margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-      background:var(--bg-color); display:flex; flex-direction:column; min-height: calc(var(--vh) * 100);
+      background:var(--bg); display:flex; flex-direction:column; min-height: calc(var(--vh) * 100);
       -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overscroll-behavior-y:none;
     }
 
     /* Header */
     header{
-      background:var(--header-bg); color:var(--header-text); padding:8px 10px;
+      background:var(--hdr); color:var(--txt); padding:8px 10px;
       padding-top: calc(8px + env(safe-area-inset-top)); box-shadow:0 2px 5px rgba(0,0,0,.2);
     }
     .header-row{ display:flex; align-items:center; gap:8px; }
     h2{ margin:0; font-size:1.05rem; text-align:center; flex:1; }
     .toolbar{ display:flex; gap:6px; }
     .icon-btn{
-      width:var(--btn-size); height:var(--btn-size); border:none; border-radius:999px; background:#4a4a4a; color:#fff;
+      width:var(--btn); height:var(--btn); border:none; border-radius:999px; background:#4a4a4a; color:#fff;
       display:grid; place-items:center; box-shadow:0 2px 6px rgba(0,0,0,.25); cursor:pointer;
     }
     .icon-btn.primary{ background:var(--accent); }
 
-    /* Controls */
-    .controls{ margin-top:8px; display:flex; gap:8px; }
+    /* Controls: grid so Save never gets cut off */
+    .controls{
+      margin-top:8px;
+      display:grid; grid-template-columns: 1fr 1fr auto; gap:8px;
+    }
     .controls input{
-      flex:1; padding:10px; border:1px solid var(--input-border); border-radius:8px; background:#222; color:#fff; font-size:15px;
+      padding:10px; border:1px solid var(--border); border-radius:8px; background:#222; color:#fff; font-size:15px; min-width:0;
     }
     .controls button.save{
       padding:10px 14px; border:none; border-radius:8px; background:var(--accent); color:#fff; font-size:15px; cursor:pointer;
+      white-space:nowrap;
+    }
+    @media (max-width: 560px){
+      .controls{ grid-template-columns: 1fr; }
+      .controls button.save{ width:100%; }
     }
 
     /* Tabs */
@@ -53,7 +61,7 @@
       padding-bottom: env(safe-area-inset-bottom); box-shadow:0 -2px 5px rgba(0,0,0,.15); z-index:20; height:var(--tab-h);
     }
     .tab-buttons button{ flex:1; border:none; background:transparent; color:#fff; font-size:15px; }
-    .tab-buttons button.active{ background:var(--tab-active-bg); }
+    .tab-buttons button.active{ background:var(--tab-active); }
 
     /* Chat area */
     .chat-wrapper{ flex:1; display:flex; overflow:hidden; padding-bottom: var(--tab-h); }
@@ -67,13 +75,12 @@
     /* Iframes */
     iframe{ flex:1; border:0; background:#000; }
 
-    /* 🔎 Twitch zoom wrapper */
-    .twitch-wrap{ position:relative; overflow:hidden; width:100%; height:100%; }
+    /* Twitch “zoom” that won’t crop */
+    .twitch-wrap{ width:100%; height:100%; }
     .twitch-wrap iframe{
+      width:100%; height:100%;
       transform: scale(var(--twitch-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--twitch-zoom));
-      height: calc(100% / var(--twitch-zoom));
+      transform-origin: top left;       /* no width/height compensation -> no cropping */
     }
 
     .single{ flex:1; padding:4px; }
@@ -86,9 +93,7 @@
 
     /* Invisible hot zones to exit Reading mode */
     .hotzone{
-      position:fixed; left:0; right:0; z-index:25; display:none;
-      /* transparent but tappable */
-      background:rgba(0,0,0,0); 
+      position:fixed; left:0; right:0; z-index:25; display:none; background:rgba(0,0,0,0);
     }
     .hotzone.top{ top:0; height:42px; }
     .hotzone.bottom{ bottom:0; height:52px; }
@@ -105,7 +110,7 @@
   </style>
 </head>
 <body>
-  <!-- Invisible tap zones appear ONLY in Reading mode to restore UI -->
+  <!-- Tap top or bottom while in Reading mode to restore UI -->
   <div id="hz-top" class="hotzone top" aria-hidden="true"></div>
   <div id="hz-bottom" class="hotzone bottom" aria-hidden="true"></div>
 
@@ -117,8 +122,6 @@
       <h2>YouTube/Twitch Multi Chat</h2>
       <div class="toolbar">
         <button id="btn-share" class="icon-btn primary" title="Share">🔗</button>
-        <button id="btn-presets" class="icon-btn" title="Presets">⭐</button>
-        <button id="btn-wake" class="icon-btn" title="Keep Awake">🛌</button>
         <button id="btn-more" class="icon-btn" title="More">⋯</button>
       </div>
     </div>
@@ -169,17 +172,7 @@
     </div>
   </div>
 
-  <!-- Presets Modal -->
-  <div id="modal-presets" class="modal" aria-hidden="true">
-    <div class="modal-card">
-      <h3>Presets</h3>
-      <div class="row"><button id="save-a">Save → A</button><button id="load-a">Load A</button></div>
-      <div class="row"><button id="save-b">Save → B</button><button id="load-b">Load B</button></div>
-      <div class="row"><button id="presets-close">Close</button></div>
-    </div>
-  </div>
-
-  <!-- More Modal -->
+  <!-- More Modal (popouts) -->
   <div id="modal-more" class="modal" aria-hidden="true">
     <div class="modal-card">
       <h3>More</h3>
@@ -190,7 +183,7 @@
   </div>
 
 <script>
-/* ========== Elements ========== */
+/* Elements */
 const twitchInput=document.getElementById('twitch-input');
 const ytInput=document.getElementById('yt-input');
 const saveBtn=document.getElementById('save-both');
@@ -205,19 +198,16 @@ const ytOnly=document.getElementById('youtube-only-iframe');
 
 const btnReading=document.getElementById('btn-reading');
 const btnShare=document.getElementById('btn-share');
-const btnPresets=document.getElementById('btn-presets');
-const btnWake=document.getElementById('btn-wake');
 const btnMore=document.getElementById('btn-more');
 
 const modalShare=document.getElementById('modal-share');
-const modalPresets=document.getElementById('modal-presets');
 const modalMore=document.getElementById('modal-more');
 const qrBox=document.getElementById('qr');
 
 const hzTop=document.getElementById('hz-top');
 const hzBottom=document.getElementById('hz-bottom');
 
-/* ========== Helpers ========== */
+/* Helpers */
 const parentHost=window.location.hostname||'127.0.0.1';
 const TWITCH_EMBED=(ch)=>`https://www.twitch.tv/embed/${ch}/chat?parent=${parentHost}&darkpopout`;
 const YT_CHAT=(id)=>`https://www.youtube.com/live_chat?v=${id}&is_popout=1&embed_domain=${parentHost}`;
@@ -238,7 +228,7 @@ function applyFromUrl(){
 }
 function updateUrl(){ history.replaceState(null,'',buildShareUrl()); }
 
-/* ========== Load iframes ========== */
+/* Load iframes */
 function loadChats(){
   const tw=localStorage.getItem('twitchChannel')||'';
   const yt=localStorage.getItem('ytId')||'';
@@ -256,7 +246,7 @@ function loadChats(){
   }
 }
 
-/* ========== Save ========== */
+/* Save */
 saveBtn.onclick=()=>{
   const tw=sanitizeTwitch(twitchInput.value.trim());
   const yt=extractYtId(ytInput.value.trim());
@@ -265,7 +255,7 @@ saveBtn.onclick=()=>{
   loadChats(); updateUrl();
 };
 
-/* ========== Tabs ========== */
+/* Tabs */
 tabs.forEach(btn=>{
   btn.addEventListener('click',()=>{
     tabs.forEach(b=>{b.classList.remove('active'); b.setAttribute('aria-selected','false');});
@@ -275,28 +265,17 @@ tabs.forEach(btn=>{
   },{passive:true});
 });
 
-/* ========== Reading mode ========== */
+/* Reading mode + hot zones */
 function setReading(on){
   document.body.classList.toggle('reading',on);
   localStorage.setItem('reading',on?'1':'0');
 }
 btnReading.onclick=()=> setReading(!document.body.classList.contains('reading'));
+function exitReading(){ if(document.body.classList.contains('reading')) setReading(false); }
+hzTop.addEventListener('click', exitReading);
+hzBottom.addEventListener('click', exitReading);
 
-/* Tap top or bottom edge to exit reading mode */
-function exitReadingIfNeeded(){
-  if(document.body.classList.contains('reading')) setReading(false);
-}
-hzTop.addEventListener('click', exitReadingIfNeeded);
-hzBottom.addEventListener('click', exitReadingIfNeeded);
-
-/* ========== Wake Lock ========== */
-let wake=null;
-async function reqWake(){ try{ wake=await navigator.wakeLock?.request('screen'); btnWake.textContent='✅'; wake.addEventListener?.('release',()=>btnWake.textContent='🛌'); }catch{} }
-async function relWake(){ try{ await wake?.release(); }catch{} finally{ wake=null; btnWake.textContent='🛌'; } }
-btnWake.onclick=()=> wake?relWake():reqWake();
-document.addEventListener('visibilitychange',()=>{ if(wake && document.visibilityState==='visible') reqWake(); });
-
-/* ========== Share modal (QR + Copy) ========== */
+/* Share modal (QR + Copy) */
 btnShare.onclick=()=>{
   modalShare.classList.add('open');
   qrBox.innerHTML='';
@@ -306,16 +285,7 @@ document.getElementById('share-copy').onclick=()=>navigator.clipboard.writeText(
 document.getElementById('share-close').onclick=()=>modalShare.classList.remove('open');
 modalShare.addEventListener('click',(e)=>{ if(e.target===modalShare) modalShare.classList.remove('open'); });
 
-/* ========== Presets modal ========== */
-btnPresets.onclick=()=>modalPresets.classList.add('open');
-document.getElementById('presets-close').onclick=()=>modalPresets.classList.remove('open');
-document.getElementById('save-a').onclick=()=>{localStorage.setItem('pa_tw',localStorage.getItem('twitchChannel')||'');localStorage.setItem('pa_yt',localStorage.getItem('ytId')||'');};
-document.getElementById('load-a').onclick=()=>{localStorage.setItem('twitchChannel',localStorage.getItem('pa_tw')||'');localStorage.setItem('ytId',localStorage.getItem('pa_yt')||'');loadChats();updateUrl();};
-document.getElementById('save-b').onclick=()=>{localStorage.setItem('pb_tw',localStorage.getItem('twitchChannel')||'');localStorage.setItem('pb_yt',localStorage.getItem('ytId')||'');};
-document.getElementById('load-b').onclick=()=>{localStorage.setItem('twitchChannel',localStorage.getItem('pb_tw')||'');localStorage.setItem('ytId',localStorage.getItem('pb_yt')||'');loadChats();updateUrl();};
-modalPresets.addEventListener('click',(e)=>{ if(e.target===modalPresets) modalPresets.classList.remove('open'); });
-
-/* ========== More (popouts) ========== */
+/* More (popouts) */
 btnMore.onclick=()=>modalMore.classList.add('open');
 document.getElementById('more-close').onclick=()=>modalMore.classList.remove('open');
 modalMore.addEventListener('click',(e)=>{ if(e.target===modalMore) modalMore.classList.remove('open'); });
@@ -337,7 +307,7 @@ document.getElementById('popout-yt-stream').onclick=()=>{
   window.open(`https://www.youtube.com/embed/${yt}?autoplay=1&modestbranding=1&rel=0`,'_blank','noopener');
 };
 
-/* ========== Init ========== */
+/* Init */
 function setVH(){ document.documentElement.style.setProperty('--vh', `${window.innerHeight*0.01}px`); }
 applyFromUrl(); loadChats(); updateUrl();
 if(localStorage.getItem('reading')==='1') document.body.classList.add('reading');
