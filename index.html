@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Unified Twitch + YouTube Chat</title>
+  <title>YouTube/Twitch Multi Chat 🎮✨</title>
   <link rel="icon" href="https://www.youtube.com/s/desktop/ffaa45ee/img/favicon_32.png" type="image/png">
   <style>
     :root{
@@ -87,8 +87,10 @@
 </head>
 <body>
   <header>
-    <h2>Unified Twitch + YouTube Chat 💬</h2>
+    <h2>YouTube/Twitch Multi Chat 🎮✨💬</h2>
     <div class="controls">
+      <input id="twitch-input" type="text" placeholder="Enter Twitch channel name" aria-label="Twitch channel" />
+      <button id="save-twitch-btn">Save Twitch Channel</button>
       <input id="yt-input" type="text" placeholder="Paste YouTube LIVE URL or 11-char ID" aria-label="YouTube Live Chat URL or ID"/>
       <button id="save-btn">Save YouTube ID</button>
     </div>
@@ -130,6 +132,8 @@
 
   <script>
     // Elements
+    const twitchInput = document.getElementById('twitch-input');
+    const saveTwitchBtn = document.getElementById('save-twitch-btn');
     const ytInput = document.getElementById('yt-input');
     const saveBtn = document.getElementById('save-btn');
     const tabButtons = document.querySelectorAll('.tab-buttons button');
@@ -141,11 +145,15 @@
     const youtubeOnlyIframe = document.getElementById('youtube-only-iframe');
 
     // Constants
-      // Constants
-    const TWITCH_CHANNEL = 'suffolk';
-    const TWITCH_BASE_URL = 'https://www.twitch.tv/embed/' + TWITCH_CHANNEL + '/chat?parent=' + (window.location.hostname || '127.0.0.1');
-   
-
+    const DEFAULT_TWITCH_CHANNEL = 'suffolk';
+    const sanitizeTwitchChannel = channel => channel.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+    const getTwitchChannel = () => {
+      const stored = localStorage.getItem('twitchChannel');
+      const sanitized = stored ? sanitizeTwitchChannel(stored) : '';
+      return sanitized || DEFAULT_TWITCH_CHANNEL;
+    };
+    const parentHost = window.location.hostname || '127.0.0.1';
+    const TWITCH_EMBED = channel => `https://www.twitch.tv/embed/${channel}/chat?parent=${parentHost}`;
     const YT_CHAT = id => 'https://www.youtube.com/live_chat?v=' + id + '&is_popout=1&embed_domain=' + (window.location.hostname || '127.0.0.1');
     function extractYtId(input) {
       if (!input) return '';
@@ -158,9 +166,13 @@
 
     function loadChats() {
       const ytId = localStorage.getItem('ytId') || '';
+      const twitchChannel = getTwitchChannel();
+
       // Twitch (works on GitHub Pages or local server because parent matches HOSTNAME)
-      twitchIframe.src = TWITCH_BASE_URL;
-      twitchOnlyIframe.src = TWITCH_BASE_URL;
+      const twitchSrc = TWITCH_EMBED(twitchChannel);
+      twitchIframe.src = twitchSrc;
+      twitchOnlyIframe.src = twitchSrc;
+      twitchInput.value = twitchChannel;
 
       // YouTube live chat (only appears when the video is live)
       if (ytId) {
@@ -174,6 +186,23 @@
         ytInput.value = '';
       }
     }
+
+    // Save Twitch channel
+    saveTwitchBtn.addEventListener('click', () => {
+      const channel = twitchInput.value.trim();
+      if (!channel) {
+        alert('Please enter a Twitch channel name.');
+        return;
+      }
+      const sanitized = sanitizeTwitchChannel(channel);
+      if (!sanitized) {
+        alert('Please enter a valid Twitch channel name (letters, numbers, or underscores).');
+        return;
+      }
+      localStorage.setItem('twitchChannel', sanitized);
+      loadChats();
+      alert('Twitch channel saved.');
+    });
 
     // Save YouTube ID
     saveBtn.addEventListener('click', () => {
@@ -200,7 +229,8 @@
 
     // Popouts
     popoutTwitchBtn.addEventListener('click', () => {
-      window.open(`https://www.twitch.tv/popout/${TWITCH_CHANNEL}/chat?popout=`, '_blank');
+      const channel = getTwitchChannel();
+      window.open(`https://www.twitch.tv/popout/${channel}/chat?popout=`, '_blank');
     });
     popoutYoutubeBtn.addEventListener('click', () => {
       const id = localStorage.getItem('ytId');
