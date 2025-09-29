@@ -4,247 +4,315 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Unified Twitch + YouTube Chat</title>
+    <link rel="icon" href="https://www.youtube.com/s/desktop/ffaa45ee/img/favicon_32.png" type="image/png">
     <style>
+      :root {
+        --bg-color: #f0f0f0;
+        --header-bg: #333;
+        --header-text: #fff;
+        --input-border: #ccc;
+        --button-primary-bg: #61afef;
+        --button-primary-hover: #529dce;
+        --button-secondary-bg: #98c379;
+        --button-secondary-hover: #7ca95e;
+        --notice-bg: #fff2a8;
+        --notice-border: #e6d977;
+        --notice-text: #333;
+        --tab-bg: #444;
+        --tab-active-bg: #61afef;
+      }
+
       body {
         margin: 0;
-        font-family: sans-serif;
-        background: #f0f0f0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg-color);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
       }
       header {
-        background: #333;
-        color: #fff;
-        padding: 10px;
+        background: var(--header-bg);
+        color: var(--header-text);
+        padding: 15px 10px; /* Increased padding */
         text-align: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Added subtle shadow */
       }
       header h2 {
         margin: 0 0 10px 0;
-        font-size: 1.5rem;
+        font-size: 1.8rem; /* Slightly larger heading */
+        letter-spacing: 0.5px;
       }
       .controls {
-        margin: 5px 0;
+        margin-bottom: 10px; /* Adjusted margin */
+        display: flex; /* Use flexbox for alignment */
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap; /* Allow wrapping on smaller screens */
+        gap: 8px; /* Space between elements */
       }
       .controls input[type="text"] {
-        width: 65%;
-        padding: 5px;
-        border: 1px solid #ccc;
+        flex-grow: 1; /* Allow input to grow */
+        max-width: 400px; /* Max width for input */
+        padding: 8px 10px; /* Increased padding */
+        border: 1px solid var(--input-border);
         border-radius: 4px;
         font-size: 1rem;
+        box-sizing: border-box; /* Include padding in width */
       }
       .controls button {
-        padding: 5px 10px;
-        margin-left: 5px;
+        padding: 8px 15px; /* Increased padding */
         font-size: 1rem;
         border: none;
         border-radius: 4px;
-        background: #61afef;
-        color: #fff;
+        background: var(--button-primary-bg);
+        color: var(--header-text);
         cursor: pointer;
+        transition: background 0.2s ease-in-out; /* Smooth transition */
       }
       .controls button:hover {
-        background: #529dce;
+        background: var(--button-primary-hover);
       }
       .notice {
-        background: #fff2a8;
-        color: #333;
-        padding: 8px;
+        background: var(--notice-bg);
+        color: var(--notice-text);
+        padding: 10px; /* Increased padding */
         font-size: 0.9rem;
-        border: 1px solid #e6d977;
+        border: 1px solid var(--notice-border);
         border-radius: 4px;
-        margin: 10px auto;
+        margin: 15px auto; /* Adjusted margin */
         max-width: 600px;
+        text-align: left; /* Align text within notice */
       }
       .popouts {
-        margin: 5px 0;
+        margin-top: 10px; /* Adjusted margin */
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
       }
       .popouts button {
-        padding: 5px 10px;
-        margin: 2px;
+        padding: 8px 15px;
         font-size: 0.9rem;
         border: none;
         border-radius: 4px;
-        background: #98c379;
-        color: #fff;
+        background: var(--button-secondary-bg);
+        color: var(--header-text);
         cursor: pointer;
+        transition: background 0.2s ease-in-out;
       }
       .popouts button:hover {
-        background: #7ca95e;
+        background: var(--button-secondary-hover);
       }
       .tab-buttons {
         display: flex;
         justify-content: center;
-        background: #444;
+        background: var(--tab-bg);
+        flex-shrink: 0; /* Prevent tabs from shrinking */
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       }
       .tab-buttons button {
         flex: 1;
-        padding: 10px;
+        padding: 12px 10px; /* Increased padding */
         border: none;
-        background: #444;
-        color: #fff;
-        font-size: 1rem;
+        background: var(--tab-bg);
+        color: var(--header-text);
+        font-size: 1.05rem; /* Slightly larger font */
         cursor: pointer;
+        transition: background 0.2s ease-in-out;
       }
       .tab-buttons button.active {
-        background: #61afef;
+        background: var(--tab-active-bg);
+      }
+      .chat-wrapper { /* New wrapper for chat containers */
+        flex-grow: 1; /* Allow it to take available height */
+        display: flex;
+        overflow: hidden; /* Hide overflow from chat containers */
       }
       .chat-container {
         width: 100%;
-        height: calc(100vh - 260px);
-        overflow: hidden;
+        height: 100%; /* Take full height of wrapper */
         display: none;
+        flex-direction: column; /* Ensure children stack if needed */
       }
       .chat-container.active {
-        display: block;
+        display: flex; /* Use flex for active container */
       }
       .split {
         display: flex;
         flex-direction: column;
+        width: 100%;
         height: 100%;
       }
       .split iframe {
+        flex: 1; /* Each iframe takes half the space */
         width: 100%;
-        height: 50%;
         border: none;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
       }
       .single iframe {
         width: 100%;
         height: 100%;
         border: none;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
       }
     </style>
   </head>
   <body>
     <header>
-      <h2>Unified Twitch + YouTube Chat</h2>
+      <h2>Unified Twitch + YouTube Chat 💬</h2>
       <div class="controls">
         <input
           id="yt-input"
           type="text"
           placeholder="Paste YouTube live URL or 11-char ID"
+          aria-label="YouTube Live Chat URL or ID"
         />
-        <button id="save-btn">Save</button>
+        <button id="save-btn">Save YouTube ID</button>
       </div>
       <div class="notice">
-        Heads up: When viewing this file locally or in certain previews, the chat
-        embeds may not load due to network restrictions. Host this page on a
-        web server or use the popout buttons below if needed.
+        **Heads up:** When viewing this file locally or in certain previews, the chat embeds may not load due to network restrictions. Host this page on a web server or use the popout buttons below if needed.
       </div>
       <div class="popouts">
-        <button id="popout-twitch">Launch Twitch popout</button>
-        <button id="popout-youtube">Launch YouTube popout</button>
+        <button id="popout-twitch" aria-label="Launch Twitch chat in new window">Launch Twitch popout 🚀</button>
+        <button id="popout-youtube" aria-label="Launch YouTube chat in new window">Launch YouTube popout 🚀</button>
       </div>
     </header>
     <div class="tab-buttons">
-      <button class="active" data-tab="both">Both</button>
-      <button data-tab="twitch">Twitch</button>
-      <button data-tab="youtube">YouTube</button>
+      <button class="active" data-tab="both">Both Chats</button>
+      <button data-tab="twitch">Twitch Chat</button>
+      <button data-tab="youtube">YouTube Chat</button>
     </div>
-    <div id="both" class="chat-container active">
-      <div class="split">
-        <iframe id="twitch-iframe"></iframe>
-        <iframe id="youtube-iframe"></iframe>
+    <div class="chat-wrapper">
+      <div id="both" class="chat-container active">
+        <div class="split">
+          <iframe id="twitch-iframe" title="Twitch Chat"></iframe>
+          <iframe id="youtube-iframe" title="YouTube Chat"></iframe>
+        </div>
       </div>
-    </div>
-    <div id="twitch" class="chat-container">
-      <div class="single">
-        <iframe id="twitch-only-iframe"></iframe>
+      <div id="twitch" class="chat-container">
+        <div class="single">
+          <iframe id="twitch-only-iframe" title="Twitch Chat (Single View)"></iframe>
+        </div>
       </div>
-    </div>
-    <div id="youtube" class="chat-container">
-      <div class="single">
-        <iframe id="youtube-only-iframe"></iframe>
+      <div id="youtube" class="chat-container">
+        <div class="single">
+          <iframe id="youtube-only-iframe" title="YouTube Chat (Single View)"></iframe>
+        </div>
       </div>
     </div>
     <script>
-      // Extract a YouTube video ID from a URL or raw ID string.
+      // DOM elements
+      const ytInput = document.getElementById('yt-input');
+      const saveBtn = document.getElementById('save-btn');
+      const tabButtons = document.querySelectorAll('.tab-buttons button');
+      const popoutTwitchBtn = document.getElementById('popout-twitch');
+      const popoutYoutubeBtn = document.getElementById('popout-youtube');
+
+      const twitchIframe = document.getElementById('twitch-iframe');
+      const twitchOnlyIframe = document.getElementById('twitch-only-iframe');
+      const youtubeIframe = document.getElementById('youtube-iframe');
+      const youtubeOnlyIframe = document.getElementById('youtube-only-iframe');
+
+      // Constants
+      const TWITCH_CHANNEL = 'suffolk'; // Replace with your Twitch channel name
+      const TWITCH_BASE_URL = `https://www.twitch.tv/embed/${TWITCH_CHANNEL}/chat?parent=`;
+      const YOUTUBE_BASE_URL = 'https://www.youtube.com/live_chat?is_popout=1&v=';
+      const YOUTUBE_POPOUT_BASE_URL = 'https://www.youtube.com/live_chat?is_popout=1&v=';
+
+
+      /**
+       * Extracts an 11-character YouTube video ID from a given input string.
+       * Handles full URLs, shortened URLs, and raw IDs.
+       * @param {string} input - The string to parse (URL or ID).
+       * @returns {string} The 11-character YouTube video ID, or an empty string if not found.
+       */
       function extractYtId(input) {
         if (!input) return '';
-        // If it's already 11 characters, assume it's the video ID.
-        if (/^[A-Za-z0-9_-]{11}$/.test(input)) {
+        // Regex for 11-character video ID
+        const idRegex = /^[A-Za-z0-9_-]{11}$/;
+        if (idRegex.test(input)) {
           return input;
         }
-        // Otherwise, attempt to parse from a full URL.
-        var match = input.match(/[?&]v=([A-Za-z0-9_-]{11})/);
-        return match ? match[1] : '';
+
+        // Regex for various YouTube URL formats
+        const urlRegex = /(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|)([\w-]{11})(?:\S+)?/i;
+        const match = input.match(urlRegex);
+        return match && match[1] ? match[1] : '';
       }
 
-      // Load the chat iframes based on stored YouTube ID and current domain.
+      /**
+       * Loads the chat iframes based on the stored YouTube ID and current domain.
+       */
       function loadChats() {
-        var ytId = localStorage.getItem('ytId') || '';
-        var parentDomain = location.hostname;
-        var twitchSrc =
-          'https://www.twitch.tv/embed/suffolk/chat?parent=' + parentDomain;
-        document.getElementById('twitch-iframe').src = twitchSrc;
-        document.getElementById('twitch-only-iframe').src = twitchSrc;
+        const ytId = localStorage.getItem('ytId') || '';
+        const parentDomain = location.hostname || 'localhost'; // Use localhost if hostname is empty (e.g., local file)
+
+        const twitchSrc = TWITCH_BASE_URL + parentDomain;
+        twitchIframe.src = twitchSrc;
+        twitchOnlyIframe.src = twitchSrc;
+
         if (ytId) {
-          var ytSrc =
-            'https://www.youtube.com/live_chat?is_popout=1&v=' + ytId;
-          document.getElementById('youtube-iframe').src = ytSrc;
-          document.getElementById('youtube-only-iframe').src = ytSrc;
+          const ytSrc = YOUTUBE_BASE_URL + ytId;
+          youtubeIframe.src = ytSrc;
+          youtubeOnlyIframe.src = ytSrc;
+          ytInput.value = ytId; // Pre-fill input with saved ID
         } else {
-          document.getElementById('youtube-iframe').src = '';
-          document.getElementById('youtube-only-iframe').src = '';
+          youtubeIframe.src = '';
+          youtubeOnlyIframe.src = '';
+          ytInput.value = '';
         }
       }
 
-      document.getElementById('save-btn').addEventListener('click', function () {
-        var input = document.getElementById('yt-input').value.trim();
-        var id = extractYtId(input);
+      // Event Listeners
+
+      // Save YouTube ID
+      saveBtn.addEventListener('click', () => {
+        const input = ytInput.value.trim();
+        const id = extractYtId(input);
         if (id) {
           localStorage.setItem('ytId', id);
           loadChats();
+          alert('YouTube ID saved successfully! Chats will now load with this ID.');
         } else {
           alert('Please provide a valid YouTube live URL or 11-character video ID.');
         }
       });
 
-      // Tab switching logic.
-      document
-        .querySelectorAll('.tab-buttons button')
-        .forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            document
-              .querySelectorAll('.tab-buttons button')
-              .forEach(function (b) {
-                b.classList.remove('active');
-              });
-            btn.classList.add('active');
-            var tab = btn.getAttribute('data-tab');
-            ['both', 'twitch', 'youtube'].forEach(function (section) {
-              var el = document.getElementById(section);
-              if (section === tab) {
-                el.classList.add('active');
-              } else {
-                el.classList.remove('active');
-              }
-            });
+      // Tab switching logic
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          // Remove 'active' from all buttons and containers
+          tabButtons.forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.chat-container').forEach(container => {
+            container.classList.remove('active');
           });
-        });
 
-      // Popout buttons to open chats in new tabs.
-      document
-        .getElementById('popout-twitch')
-        .addEventListener('click', function () {
-          window.open(
-            'https://www.twitch.tv/popout/suffolk/chat?popout=',
-            '_blank'
-          );
-        });
-      document
-        .getElementById('popout-youtube')
-        .addEventListener('click', function () {
-          var ytId = localStorage.getItem('ytId');
-          if (ytId) {
-            window.open(
-              'https://www.youtube.com/live_chat?is_popout=1&v=' + ytId,
-              '_blank'
-            );
-          } else {
-            alert('Please save a YouTube ID first.');
+          // Add 'active' to clicked button and corresponding container
+          btn.classList.add('active');
+          const tab = btn.getAttribute('data-tab');
+          const activeContainer = document.getElementById(tab);
+          if (activeContainer) {
+            activeContainer.classList.add('active');
           }
         });
+      });
 
-      // Initial load on page ready.
-      loadChats();
+      // Popout buttons
+      popoutTwitchBtn.addEventListener('click', () => {
+        window.open(`https://www.twitch.tv/popout/${TWITCH_CHANNEL}/chat?popout=`, '_blank');
+      });
+
+      popoutYoutubeBtn.addEventListener('click', () => {
+        const ytId = localStorage.getItem('ytId');
+        if (ytId) {
+          window.open(YOUTUBE_POPOUT_BASE_URL + ytId, '_blank');
+        } else {
+          alert('Please save a YouTube ID first before launching the popout.');
+        }
+      });
+
+      // Initial load on page ready
+      document.addEventListener('DOMContentLoaded', loadChats);
     </script>
   </body>
 </html>
