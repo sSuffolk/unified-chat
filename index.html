@@ -8,8 +8,8 @@
   <link rel="icon" href="https://www.youtube.com/s/desktop/ffaa45ee/img/favicon_32.png" type="image/png">
   <style>
     :root{
-      --vh: 1vh;                 /* real viewport unit, set via JS for iOS */
-      --tab-h: 56px;             /* updated via JS */
+      --vh: 1vh;                 
+      --tab-h: 56px;             
       --bg-color:#f0f0f0; --header-bg:#333; --header-text:#fff; --input-border:#ccc;
       --button-primary-bg:#61afef; --button-primary-hover:#529dce;
       --button-secondary-bg:#98c379; --button-secondary-hover:#7ca95e;
@@ -30,7 +30,7 @@
 
     header{
       background:var(--header-bg); color:var(--header-text);
-      padding:10px 8px; /* tighter */
+      padding:10px 8px;
       padding-top: calc(10px + env(safe-area-inset-top));
       box-shadow:0 2px 5px rgba(0,0,0,.2);
       position:relative; z-index:10;
@@ -39,7 +39,7 @@
       margin:0 0 8px;
       font-size:1.15rem;
       letter-spacing:.2px;
-      text-align:center;   /* centered title */
+      text-align:center;
       width:100%;
     }
     .controls{
@@ -70,7 +70,7 @@
       padding-bottom: env(safe-area-inset-bottom);
       box-shadow:0 -2px 5px rgba(0,0,0,.15);
       z-index:20;
-      transition: transform .2s ease-in-out; /* for hide animation */
+      transition: transform .2s ease-in-out;
     }
     .tab-buttons button{
       flex:1; padding:14px 10px; border:none; background:transparent; color:var(--header-text);
@@ -90,8 +90,8 @@
     .chat-container.active{ display:flex; }
     .split{
       display:flex; flex-direction:column; width:100%; height:100%;
-      gap:4px;           /* tighter than 6px */
-      padding:4px;       /* tighter than 6px */
+      gap:4px;
+      padding:4px;
       min-height:0;
     }
     .single{ height:100%; min-height:0; padding:4px; }
@@ -105,11 +105,9 @@
       .split{ flex-direction:row; }
     }
 
-    /* Compact mode (hides header) */
     body.compact header{ display:none; }
     body.compact .fab{ opacity:.9; }
 
-    /* Hide-tabs mode: slide bar away + reclaim space */
     .tabs-hidden .tab-buttons{ transform: translateY(100%); }
     .tabs-hidden .chat-wrapper{ padding-bottom: 0; }
 
@@ -123,9 +121,7 @@
   </style>
 </head>
 <body>
-  <!-- Compact (hide header) -->
   <button id="toggle-compact" class="fab" aria-label="Toggle compact UI">⚙️</button>
-  <!-- Hide Tabs (left side) -->
   <button id="toggle-tabs" class="fab" style="right:auto; left:8px;" aria-label="Toggle bottom tabs">⬇️</button>
 
   <header>
@@ -137,8 +133,10 @@
       <button id="save-btn">Save YouTube</button>
     </div>
     <div class="popouts">
-      <button id="popout-twitch" aria-label="Launch Twitch chat in new window">Launch Twitch popout 🚀</button>
-      <button id="popout-youtube" aria-label="Launch YouTube chat in new window">Launch YouTube popout 🚀</button>
+      <button id="popout-twitch" aria-label="Launch Twitch chat in new window">Twitch Chat 🚀</button>
+      <button id="popout-youtube" aria-label="Launch YouTube chat in new window">YouTube Chat 🚀</button>
+      <button id="popout-twitch-stream" aria-label="Launch Twitch stream in new window">Twitch Stream ▶️</button>
+      <button id="popout-youtube-stream" aria-label="Launch YouTube stream in new window">YouTube Stream ▶️</button>
     </div>
   </header>
 
@@ -170,7 +168,6 @@
   </div>
 
   <script>
-    // Elements
     const twitchInput = document.getElementById('twitch-input');
     const saveTwitchBtn = document.getElementById('save-twitch-btn');
     const ytInput = document.getElementById('yt-input');
@@ -179,6 +176,8 @@
     const tabsBar = document.getElementById('tabs');
     const popoutTwitchBtn = document.getElementById('popout-twitch');
     const popoutYoutubeBtn = document.getElementById('popout-youtube');
+    const popoutTwitchStreamBtn = document.getElementById('popout-twitch-stream');
+    const popoutYoutubeStreamBtn = document.getElementById('popout-youtube-stream');
     const twitchIframe = document.getElementById('twitch-iframe');
     const twitchOnlyIframe = document.getElementById('twitch-only-iframe');
     const youtubeIframe = document.getElementById('youtube-iframe');
@@ -186,7 +185,6 @@
     const compactBtn = document.getElementById('toggle-compact');
     const hideTabsBtn = document.getElementById('toggle-tabs');
 
-    // Constants
     const DEFAULT_TWITCH_CHANNEL = 'suffolk';
     const sanitizeTwitchChannel = (channel) => channel.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
     const getTwitchChannel = () => {
@@ -195,7 +193,6 @@
       return sanitized || DEFAULT_TWITCH_CHANNEL;
     };
     const parentHost = window.location.hostname || '127.0.0.1';
-    // Twitch dark mode via &darkpopout
     const TWITCH_EMBED = (channel) => `https://www.twitch.tv/embed/${channel}/chat?parent=${parentHost}&darkpopout`;
     const YT_CHAT = (id) => 'https://www.youtube.com/live_chat?v=' + id + '&is_popout=1&embed_domain=' + (window.location.hostname || '127.0.0.1');
 
@@ -208,12 +205,9 @@
       return m && m[1] ? m[1] : '';
     }
 
-    // iOS viewport fix + bottom tab height
     function setViewportVars(){
       const vh = window.innerHeight * 0.01;
       document.documentElement.style.setProperty('--vh', `${vh}px`);
-
-      // If tabs are hidden, treat height as 0 to give iframes more space
       const tabsHidden = document.body.classList.contains('tabs-hidden');
       const tabHeight = tabsHidden ? 0 : (tabsBar?.offsetHeight || 56);
       document.documentElement.style.setProperty('--tab-h', `${tabHeight}px`);
@@ -240,27 +234,24 @@
       }
     }
 
-    // Save Twitch channel
     saveTwitchBtn.addEventListener('click', () => {
       const channel = twitchInput.value.trim();
       if (!channel) return alert('Please enter a Twitch channel name.');
       const sanitized = sanitizeTwitchChannel(channel);
-      if (!sanitized) return alert('Please enter a valid Twitch channel name (letters, numbers, or underscores).');
+      if (!sanitized) return alert('Please enter a valid Twitch channel name.');
       localStorage.setItem('twitchChannel', sanitized);
       loadChats();
       alert('Twitch channel saved.');
     });
 
-    // Save YouTube ID
     saveBtn.addEventListener('click', () => {
       const id = extractYtId(ytInput.value.trim());
       if (!id) return alert('Please paste your actual LIVE URL or the 11-character video ID.');
       localStorage.setItem('ytId', id);
       loadChats();
-      alert('YouTube ID saved. If you’re live, the chat will appear.');
+      alert('YouTube ID saved.');
     });
 
-    // Tabs
     tabButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
         tabButtons.forEach((b) => {
@@ -275,7 +266,7 @@
       }, { passive: true });
     });
 
-    // Popouts
+    // Chat popouts
     popoutTwitchBtn.addEventListener('click', () => {
       const channel = getTwitchChannel();
       window.open(`https://www.twitch.tv/popout/${channel}/chat?popout=`, '_blank', 'noopener');
@@ -286,7 +277,19 @@
       window.open(YT_CHAT(id), '_blank', 'noopener');
     });
 
-    // Compact UI toggle (hide header)
+    // Stream popouts
+    popoutTwitchStreamBtn.addEventListener('click', () => {
+      const channel = getTwitchChannel();
+      const url = `https://player.twitch.tv/?channel=${channel}&parent=${parentHost}`;
+      window.open(url, '_blank', 'noopener');
+    });
+    popoutYoutubeStreamBtn.addEventListener('click', () => {
+      const id = localStorage.getItem('ytId');
+      if (!id) return alert('Save your YouTube LIVE ID first.');
+      const url = `https://www.youtube.com/embed/${id}?autoplay=1&modestbranding=1&rel=0`;
+      window.open(url, '_blank', 'noopener');
+    });
+
     function applyCompactFromStorage(){
       const compact = localStorage.getItem('compactUI') === '1';
       document.body.classList.toggle('compact', compact);
@@ -295,10 +298,9 @@
       const next = !document.body.classList.contains('compact');
       document.body.classList.toggle('compact', next);
       localStorage.setItem('compactUI', next ? '1' : '0');
-      setViewportVars(); // header height changed
+      setViewportVars();
     });
 
-    // Hide Tabs toggle (bottom bar)
     function applyTabsHiddenFromStorage(){
       const hidden = localStorage.getItem('hideTabs') === '1';
       document.body.classList.toggle('tabs-hidden', hidden);
@@ -307,16 +309,14 @@
       const next = !document.body.classList.contains('tabs-hidden');
       document.body.classList.toggle('tabs-hidden', next);
       localStorage.setItem('hideTabs', next ? '1' : '0');
-      setViewportVars(); // bottom padding changes
+      setViewportVars();
     });
 
-    // Init
     document.addEventListener('DOMContentLoaded', () => {
       applyCompactFromStorage();
       applyTabsHiddenFromStorage();
       setViewportVars();
       loadChats();
-
       const isPhone = Math.max(window.screen.width, window.screen.height) < 1280;
       if (isPhone && window.matchMedia('(orientation: landscape)').matches && !localStorage.getItem('compactUI')) {
         document.body.classList.add('compact');
@@ -325,7 +325,6 @@
       }
     });
 
-    // Update on resize/orientation changes
     window.addEventListener('resize', setViewportVars);
     window.addEventListener('orientationchange', () => setTimeout(setViewportVars, 200));
   </script>
