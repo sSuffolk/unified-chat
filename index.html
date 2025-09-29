@@ -14,8 +14,9 @@
       --accent:#61afef; --tab-bg:#444; --tab-active:#61afef;
       --btn:38px;
 
-      /* Twitch chat visual scale (smaller number shows more). Try 0.9 / 0.85 */
-      --twitch-zoom: 0.9;
+      /* live zoom values (stored/restored by JS) */
+      --tz: 1;   /* Twitch zoom (1 = normal, <1 zooms out) */
+      --yz: 1;   /* YouTube zoom */
     }
     html, body { height: calc(var(--vh) * 100); }
     body{
@@ -38,7 +39,7 @@
     }
     .icon-btn.primary{ background:var(--accent); }
 
-    /* Controls: grid so Save never gets cut off */
+    /* Controls */
     .controls{
       margin-top:8px;
       display:grid; grid-template-columns: 1fr 1fr auto; gap:8px;
@@ -75,26 +76,23 @@
     /* Iframes */
     iframe{ flex:1; border:0; background:#000; }
 
-    /* Twitch “zoom” that won’t crop */
-    .twitch-wrap{ width:100%; height:100%; }
-    .twitch-wrap iframe{
-      width:100%; height:100%;
-      transform: scale(var(--twitch-zoom));
-      transform-origin: top left;       /* no width/height compensation -> no cropping */
-    }
+    /* Zoom wrappers (no cropping; we grow the inner box) */
+    .zoom-wrap{ position:relative; width:100%; height:100%; overflow:auto; }
+    .zoom-inner{ position:absolute; top:0; left:0; width:100%; height:100%; transform-origin: top left; }
+
+    .zoom-twitch .zoom-inner{ transform: scale(var(--tz)); width: calc(100% / var(--tz)); height: calc(100% / var(--tz)); }
+    .zoom-youtube .zoom-inner{ transform: scale(var(--yz)); width: calc(100% / var(--yz)); height: calc(100% / var(--yz)); }
 
     .single{ flex:1; padding:4px; }
-    .single .twitch-wrap, .single iframe{ width:100%; height:100%; }
+    .single .zoom-wrap{ width:100%; height:100%; }
 
     /* Reading mode */
     body.reading header{ display:none; }
     body.reading .tab-buttons{ transform: translateY(100%); }
     body.reading .chat-wrapper{ padding-bottom: 0; }
 
-    /* Invisible hot zones to exit Reading mode */
-    .hotzone{
-      position:fixed; left:0; right:0; z-index:25; display:none; background:rgba(0,0,0,0);
-    }
+    /* Hot zones to exit reading mode */
+    .hotzone{ position:fixed; left:0; right:0; z-index:25; display:none; background:rgba(0,0,0,0); }
     .hotzone.top{ top:0; height:42px; }
     .hotzone.bottom{ bottom:0; height:52px; }
     body.reading .hotzone{ display:block; }
@@ -107,6 +105,7 @@
     .row button{ flex:1; min-width:120px; padding:10px; border:none; border-radius:8px; background:#333; color:#fff; }
     .qr-box{ background:#fff; padding:8px; border-radius:8px; align-self:center; }
     .modal h3{ margin:0; font-size:1rem; text-align:center; }
+    .zoom-row button{ min-width:auto; flex:0 0 auto; padding:8px 10px; }
   </style>
 </head>
 <body>
@@ -136,23 +135,27 @@
     <div id="both" class="chat-container active">
       <div class="split">
         <div class="pane">
-          <div class="twitch-wrap"><iframe id="twitch-iframe" title="Twitch Chat"></iframe></div>
+          <div class="zoom-wrap zoom-twitch">
+            <div class="zoom-inner"><iframe id="twitch-iframe" title="Twitch Chat"></iframe></div>
+          </div>
         </div>
         <div class="pane">
-          <iframe id="youtube-iframe" title="YouTube Chat"></iframe>
+          <div class="zoom-wrap zoom-youtube">
+            <div class="zoom-inner"><iframe id="youtube-iframe" title="YouTube Chat"></iframe></div>
+          </div>
         </div>
       </div>
     </div>
 
     <div id="twitch" class="chat-container">
       <div class="single">
-        <div class="twitch-wrap"><iframe id="twitch-only-iframe" title="Twitch Chat (Single View)"></iframe></div>
+        <div class="zoom-wrap zoom-twitch"><div class="zoom-inner"><iframe id="twitch-only-iframe" title="Twitch Chat (Single View)"></iframe></div></div>
       </div>
     </div>
 
     <div id="youtube" class="chat-container">
       <div class="single">
-        <iframe id="youtube-only-iframe" title="YouTube Chat (Single View)"></iframe>
+        <div class="zoom-wrap zoom-youtube"><div class="zoom-inner"><iframe id="youtube-only-iframe" title="YouTube Chat (Single View)"></iframe></div></div>
       </div>
     </div>
   </div>
@@ -172,12 +175,33 @@
     </div>
   </div>
 
-  <!-- More Modal (popouts) -->
+  <!-- More Modal (popouts + zoom controls) -->
   <div id="modal-more" class="modal" aria-hidden="true">
     <div class="modal-card">
       <h3>More</h3>
-      <div class="row"><button id="popout-twitch-chat">Twitch Chat 🚀</button><button id="popout-yt-chat">YouTube Chat 🚀</button></div>
-      <div class="row"><button id="popout-twitch-stream">Twitch Stream ▶️</button><button id="popout-yt-stream">YouTube Stream ▶️</button></div>
+      <div class="row">
+        <button id="popout-twitch-chat">Twitch Chat 🚀</button>
+        <button id="popout-yt-chat">YouTube Chat 🚀</button>
+      </div>
+      <div class="row">
+        <button id="popout-twitch-stream">Twitch Stream ▶️</button>
+        <button id="popout-yt-stream">YouTube Stream ▶️</button>
+      </div>
+
+      <!-- Zoom controls -->
+      <div class="row zoom-row" style="justify-content:center;margin-top:8px;">
+        <strong style="flex:0 0 auto;">Twitch zoom:</strong>
+        <button id="tz-out">−</button>
+        <button id="tz-reset">100%</button>
+        <button id="tz-in">+</button>
+      </div>
+      <div class="row zoom-row" style="justify-content:center;">
+        <strong style="flex:0 0 auto;">YouTube zoom:</strong>
+        <button id="yz-out">−</button>
+        <button id="yz-reset">100%</button>
+        <button id="yz-in">+</button>
+      </div>
+
       <div class="row"><button id="more-close">Close</button></div>
     </div>
   </div>
@@ -206,6 +230,14 @@ const qrBox=document.getElementById('qr');
 
 const hzTop=document.getElementById('hz-top');
 const hzBottom=document.getElementById('hz-bottom');
+
+/* Zoom buttons */
+const tzOut=document.getElementById('tz-out');
+const tzIn=document.getElementById('tz-in');
+const tzReset=document.getElementById('tz-reset');
+const yzOut=document.getElementById('yz-out');
+const yzIn=document.getElementById('yz-in');
+const yzReset=document.getElementById('yz-reset');
 
 /* Helpers */
 const parentHost=window.location.hostname||'127.0.0.1';
@@ -275,7 +307,7 @@ function exitReading(){ if(document.body.classList.contains('reading')) setReadi
 hzTop.addEventListener('click', exitReading);
 hzBottom.addEventListener('click', exitReading);
 
-/* Share modal (QR + Copy) */
+/* Share modal */
 btnShare.onclick=()=>{
   modalShare.classList.add('open');
   qrBox.innerHTML='';
@@ -285,7 +317,7 @@ document.getElementById('share-copy').onclick=()=>navigator.clipboard.writeText(
 document.getElementById('share-close').onclick=()=>modalShare.classList.remove('open');
 modalShare.addEventListener('click',(e)=>{ if(e.target===modalShare) modalShare.classList.remove('open'); });
 
-/* More (popouts) */
+/* More (popouts + zoom) */
 btnMore.onclick=()=>modalMore.classList.add('open');
 document.getElementById('more-close').onclick=()=>modalMore.classList.remove('open');
 modalMore.addEventListener('click',(e)=>{ if(e.target===modalMore) modalMore.classList.remove('open'); });
@@ -307,10 +339,30 @@ document.getElementById('popout-yt-stream').onclick=()=>{
   window.open(`https://www.youtube.com/embed/${yt}?autoplay=1&modestbranding=1&rel=0`,'_blank','noopener');
 };
 
+/* Zoom controls */
+function setZoom(kind, val){
+  const clamped=Math.max(0.6, Math.min(1.4, val)); // allow 60%..140%
+  document.documentElement.style.setProperty(kind==='t'?'--tz':'--yz', clamped);
+  localStorage.setItem(kind==='t'?'zoom_t':'zoom_y', String(clamped));
+}
+function stepZoom(kind, delta){
+  const cur=parseFloat(getComputedStyle(document.documentElement).getPropertyValue(kind==='t'?'--tz':'--yz'))||1;
+  setZoom(kind, Math.round((cur+delta)*100)/100);
+}
+tzOut.onclick=()=>stepZoom('t', -0.05);
+tzIn.onclick=()=>stepZoom('t', +0.05);
+tzReset.onclick=()=>setZoom('t', 1);
+yzOut.onclick=()=>stepZoom('y', -0.05);
+yzIn.onclick=()=>stepZoom('y', +0.05);
+yzReset.onclick=()=>setZoom('y', 1);
+
 /* Init */
 function setVH(){ document.documentElement.style.setProperty('--vh', `${window.innerHeight*0.01}px`); }
 applyFromUrl(); loadChats(); updateUrl();
 if(localStorage.getItem('reading')==='1') document.body.classList.add('reading');
+/* restore zooms */
+const zt=parseFloat(localStorage.getItem('zoom_t')); if(zt) setZoom('t', zt);
+const zy=parseFloat(localStorage.getItem('zoom_y')); if(zy) setZoom('y', zy);
 setVH(); window.addEventListener('resize', setVH);
 </script>
 </body>
