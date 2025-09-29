@@ -1,210 +1,127 @@
-<!-- /index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>YouTube/Twitch Multi Chat 🎮✨</title>
+  <title>YouTube/Twitch Multi Chat 🎮✨💬</title>
   <link rel="icon" href="https://www.youtube.com/s/desktop/ffaa45ee/img/favicon_32.png" type="image/png">
-  <!-- QR code lib (tiny, no tracking) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <style>
     :root{
-      --vh: 1vh;                 /* set via JS for iOS */
-      --tab-h: 56px;             /* updated via JS */
-      --bg-color:#f0f0f0; --header-bg:#333; --header-text:#fff; --input-border:#ccc;
-      --button-primary-bg:#61afef; --button-primary-hover:#529dce;
-      --button-secondary-bg:#98c379; --button-secondary-hover:#7ca95e;
-      --tab-bg:#444; --tab-active-bg:#61afef;
-      --radius:12px;
-      --split: 50;               /* % height (portrait) or width (landscape) for first pane */
-    }
+      --vh: 1vh;
+      --tab-h: 48px;
+      --bg-color:#f0f0f0; --header-bg:#333; --header-text:#fff; --input-border:#555;
+      --accent:#61afef; --tab-bg:#444; --tab-active-bg:#61afef;
+      --btn-size:38px;
 
+      /* 🔎 Twitch zoom level (0.9 = zoomed out a bit). Change to 0.85/0.8 if you want more. */
+      --twitch-zoom: 0.9;
+    }
     html, body { height: calc(var(--vh) * 100); }
     body{
-      margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
-      background:var(--bg-color);
-      display:flex; flex-direction:column;
-      min-height: calc(var(--vh) * 100);
-      -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-      overscroll-behavior-y:none;
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background:var(--bg-color); display:flex; flex-direction:column; min-height: calc(var(--vh) * 100);
+      -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overscroll-behavior-y:none;
     }
 
+    /* Header */
     header{
-      background:var(--header-bg); color:var(--header-text);
-      padding:10px 8px;
-      padding-top: calc(10px + env(safe-area-inset-top));
-      box-shadow:0 2px 5px rgba(0,0,0,.2);
-      position:relative; z-index:10;
+      background:var(--header-bg); color:var(--header-text); padding:8px 10px;
+      padding-top: calc(8px + env(safe-area-inset-top)); box-shadow:0 2px 5px rgba(0,0,0,.2);
     }
-    header h2{
-      margin:0 0 8px;
-      font-size:1.15rem;
-      letter-spacing:.2px;
-      text-align:center;
-      width:100%;
+    .header-row{ display:flex; align-items:center; gap:8px; }
+    h2{ margin:0; font-size:1.05rem; text-align:center; flex:1; }
+    .toolbar{ display:flex; gap:6px; }
+    .icon-btn{
+      width:var(--btn-size); height:var(--btn-size); border:none; border-radius:999px; background:#4a4a4a; color:#fff;
+      display:grid; place-items:center; box-shadow:0 2px 6px rgba(0,0,0,.25); cursor:pointer;
     }
-    .controls{
-      margin-bottom:8px; display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:8px;
-    }
-    .controls input[type="text"]{
-      flex:1 1 220px; max-width:420px; padding:10px 10px; border:1px solid var(--input-border);
-      border-radius:8px; font-size:16px; box-sizing:border-box; background:#fff;
-    }
-    .controls button{
-      padding:10px 14px; font-size:16px; border:none; border-radius:10px;
-      background:var(--button-primary-bg); color:var(--header-text); cursor:pointer; touch-action:manipulation;
-    }
-    .controls button.secondary{ background:var(--button-secondary-bg); }
-    .controls button:active{ transform:translateY(1px); }
-    .controls button:hover{ filter:brightness(.95); }
+    .icon-btn.primary{ background:var(--accent); }
 
-    .popouts{ margin-top:8px; display:flex; justify-content:center; flex-wrap:wrap; gap:8px; }
-    .popouts button{
-      padding:10px 14px; font-size:15px; border:none; border-radius:10px;
-      background:var(--button-secondary-bg); color:var(--header-text); cursor:pointer; touch-action:manipulation;
+    /* Controls */
+    .controls{ margin-top:8px; display:flex; gap:8px; }
+    .controls input{
+      flex:1; padding:10px; border:1px solid var(--input-border); border-radius:8px; background:#222; color:#fff; font-size:15px;
     }
-    .popouts button:active{ transform:translateY(1px); }
-    .popouts button:hover{ filter:brightness(.95); }
+    .controls button.save{
+      padding:10px 14px; border:none; border-radius:8px; background:var(--accent); color:#fff; font-size:15px; cursor:pointer;
+    }
 
+    /* Tabs */
     .tab-buttons{
-      position:fixed; left:0; right:0; bottom:0;
-      display:flex; justify-content:center; background:var(--tab-bg);
-      padding-bottom: env(safe-area-inset-bottom);
-      box-shadow:0 -2px 5px rgba(0,0,0,.15);
-      z-index:20;
-      transition: transform .2s ease-in-out;
+      position:fixed; left:0; right:0; bottom:0; display:flex; background:var(--tab-bg);
+      padding-bottom: env(safe-area-inset-bottom); box-shadow:0 -2px 5px rgba(0,0,0,.15); z-index:20; height:var(--tab-h);
     }
-    .tab-buttons button{
-      flex:1; padding:14px 10px; border:none; background:transparent; color:var(--header-text);
-      font-size:16px; cursor:pointer; touch-action:manipulation;
-    }
+    .tab-buttons button{ flex:1; border:none; background:transparent; color:#fff; font-size:15px; }
     .tab-buttons button.active{ background:var(--tab-active-bg); }
 
-    .chat-wrapper{
-      flex:1 1 auto; display:flex; overflow:hidden;
-      min-height:0;
-      padding-bottom: var(--tab-h);
-    }
-    .chat-container{
-      width:100%; height:100%; display:none; flex-direction:column;
-      min-height:0;
-    }
+    /* Chat area */
+    .chat-wrapper{ flex:1; display:flex; overflow:hidden; padding-bottom: var(--tab-h); }
+    .chat-container{ flex:1; display:none; flex-direction:column; }
     .chat-container.active{ display:flex; }
+    .split{ flex:1; display:flex; gap:4px; padding:4px; }
+    @media (orientation: portrait){ .split{ flex-direction:column; } }
+    @media (orientation: landscape){ .split{ flex-direction:row; } }
+    .pane{ flex:1; display:flex; min-height:0; min-width:0; }
 
-    /* Split with draggable divider */
-    .split{
-      display:flex; flex-direction:column; width:100%; height:100%;
-      gap:4px; padding:4px; min-height:0;
-    }
-    .pane{ display:flex; min-height:0; min-width:0; }
-    .pane iframe{ display:block; width:100%; border:0; background:#000; box-shadow:inset 0 0 5px rgba(0,0,0,.08); min-height:0; }
-    .pane:first-child{ flex: 0 0 calc(var(--split) * 1%); }
-    .pane:last-child{ flex: 1 1 auto; }
+    /* Iframes */
+    iframe{ flex:1; border:0; background:#000; }
 
-    .divider{
-      background:rgba(255,255,255,.25);
-      border-radius:8px;
-      touch-action:none;
-      display:flex; align-items:center; justify-content:center;
-      user-select:none;
-    }
-    .divider .handle{ opacity:.8; }
-
-    @media (orientation: landscape){
-      .split{ flex-direction:row; }
-      .divider{ width:10px; cursor:col-resize; }
-      .pane:first-child{ flex: 0 0 calc(var(--split) * 1%); }
-    }
-    @media (orientation: portrait){
-      .divider{ height:10px; cursor:row-resize; }
+    /* 🔎 Twitch zoom wrapper (applied to both twitch iframes) */
+    .twitch-wrap{ position:relative; overflow:hidden; width:100%; height:100%; }
+    .twitch-wrap iframe{
+      transform: scale(var(--twitch-zoom));
+      transform-origin: top left;
+      width: calc(100% / var(--twitch-zoom));
+      height: calc(100% / var(--twitch-zoom));
     }
 
-    .single{ height:100%; min-height:0; padding:4px; }
-    .single iframe{ height:100%; }
+    .single{ flex:1; padding:4px; }
+    .single .twitch-wrap, .single iframe{ width:100%; height:100%; }
 
-    /* One-tap Reading mode (hides header & tabs) */
+    /* Reading mode */
     body.reading header{ display:none; }
     body.reading .tab-buttons{ transform: translateY(100%); }
     body.reading .chat-wrapper{ padding-bottom: 0; }
-    body.reading .fab{ opacity:.95; }
 
-    /* Floating buttons */
-    .fab{
-      position:fixed; top:calc(env(safe-area-inset-top) + 8px); right:8px; z-index:30;
-      background:var(--tab-active-bg); color:#fff; border:none; border-radius:999px;
-      padding:10px 12px; font-size:16px; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,.25);
-      touch-action:manipulation;
-    }
-    .fab:active{ transform:translateY(1px); }
-
-    /* Status pill */
-    .status-pill{
-      position:fixed; bottom:calc(env(safe-area-inset-bottom) + 64px);
-      left:50%; transform:translateX(-50%);
-      background:rgba(0,0,0,.75); color:#fff; padding:6px 10px; border-radius:999px;
-      font-size:12px; z-index:25; backdrop-filter: blur(4px);
-    }
-
-    /* QR modal */
-    .modal{
-      position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:40;
-    }
+    /* Modals */
+    .modal{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:40; }
     .modal.open{ display:flex; }
-    .modal-card{
-      background:#111; color:#fff; padding:16px; border-radius:12px; width:min(90vw, 420px);
-      display:flex; flex-direction:column; gap:12px; align-items:center;
-    }
-    .modal-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
-    .qr-box{ background:#fff; padding:8px; border-radius:8px; }
+    .modal-card{ background:#111; color:#fff; padding:16px; border-radius:12px; width:min(92vw, 420px); display:flex; flex-direction:column; gap:12px; }
+    .row{ display:flex; flex-wrap:wrap; gap:8px; }
+    .row button{ flex:1; min-width:120px; padding:10px; border:none; border-radius:8px; background:#333; color:#fff; }
+    .qr-box{ background:#fff; padding:8px; border-radius:8px; align-self:center; }
+    .modal h3{ margin:0; font-size:1rem; text-align:center; }
   </style>
 </head>
 <body>
-  <!-- ONE-TAP READING MODE (toggles header + tabs) -->
-  <button id="toggle-reading" class="fab" aria-label="Toggle reading mode">📖</button>
-
   <header>
-    <h2>YouTube/Twitch Multi Chat 🎮✨💬</h2>
-    <div class="controls">
-      <input id="twitch-input" type="text" placeholder="Enter Twitch channel name" aria-label="Twitch channel"/>
-      <button id="save-twitch-btn">Save Twitch</button>
-
-      <input id="yt-input" type="text" placeholder="Paste YouTube LIVE URL or 11-char ID" aria-label="YouTube Live Chat URL or ID"/>
-      <button id="save-btn">Save YouTube</button>
-
-      <!-- Quick presets (2) -->
-      <button id="save-preset-a" class="secondary" aria-label="Save current IDs to Preset A">Save → A ⭐</button>
-      <button id="load-preset-a" aria-label="Load Preset A">Load A</button>
-      <button id="save-preset-b" class="secondary" aria-label="Save current IDs to Preset B">Save → B ⭐</button>
-      <button id="load-preset-b" aria-label="Load Preset B">Load B</button>
-
-      <!-- Share via URL / QR -->
-      <button id="copy-share-link" class="secondary" aria-label="Copy shareable link with IDs">Copy Link 🔗</button>
-      <button id="show-qr" aria-label="Show QR for share link">QR 📱</button>
-
-      <!-- Wake Lock -->
-      <button id="toggle-wake" aria-label="Keep screen awake">Keep Awake 💤</button>
+    <div class="header-row">
+      <div class="toolbar">
+        <button id="btn-reading" class="icon-btn" title="Reading mode">📖</button>
+      </div>
+      <h2>YouTube/Twitch Multi Chat</h2>
+      <div class="toolbar">
+        <button id="btn-share" class="icon-btn primary" title="Share">🔗</button>
+        <button id="btn-presets" class="icon-btn" title="Presets">⭐</button>
+        <button id="btn-wake" class="icon-btn" title="Keep Awake">🛌</button>
+        <button id="btn-more" class="icon-btn" title="More">⋯</button>
+      </div>
     </div>
-
-    <div class="popouts">
-      <button id="popout-twitch" aria-label="Launch Twitch chat in new window">Twitch Chat 🚀</button>
-      <button id="popout-youtube" aria-label="Launch YouTube chat in new window">YouTube Chat 🚀</button>
-      <button id="popout-twitch-stream" aria-label="Launch Twitch stream in new window">Twitch Stream ▶️</button>
-      <button id="popout-youtube-stream" aria-label="Launch YouTube stream in new window">YouTube Stream ▶️</button>
+    <div class="controls">
+      <input id="twitch-input" type="text" placeholder="Twitch channel"/>
+      <input id="yt-input" type="text" placeholder="YouTube LIVE URL or ID"/>
+      <button id="save-both" class="save">Save</button>
     </div>
   </header>
 
   <div class="chat-wrapper">
     <div id="both" class="chat-container active">
-      <div class="split" id="split">
-        <div class="pane" id="pane-twitch">
-          <iframe id="twitch-iframe" title="Twitch Chat"></iframe>
+      <div class="split">
+        <div class="pane">
+          <div class="twitch-wrap"><iframe id="twitch-iframe" title="Twitch Chat"></iframe></div>
         </div>
-        <div class="divider" id="divider" role="separator" aria-label="Drag to resize">
-          <span class="handle">⋮⋮</span>
-        </div>
-        <div class="pane" id="pane-youtube">
+        <div class="pane">
           <iframe id="youtube-iframe" title="YouTube Chat"></iframe>
         </div>
       </div>
@@ -212,7 +129,7 @@
 
     <div id="twitch" class="chat-container">
       <div class="single">
-        <iframe id="twitch-only-iframe" title="Twitch Chat (Single View)"></iframe>
+        <div class="twitch-wrap"><iframe id="twitch-only-iframe" title="Twitch Chat (Single View)"></iframe></div>
       </div>
     </div>
 
@@ -229,333 +146,178 @@
     <button data-tab="youtube" role="tab" aria-selected="false">YouTube</button>
   </div>
 
-  <!-- Status pill -->
-  <div id="status-pill" class="status-pill">Twitch: — · YouTube: —</div>
-
-  <!-- QR Modal -->
-  <div id="qr-modal" class="modal" aria-hidden="true">
+  <!-- Share Modal -->
+  <div id="modal-share" class="modal" aria-hidden="true">
     <div class="modal-card">
-      <h3 style="margin:0;">Scan on your phone</h3>
+      <h3>Share</h3>
       <div id="qr" class="qr-box"></div>
-      <div class="modal-actions">
-        <button id="qr-copy">Copy Link</button>
-        <button id="qr-close">Close</button>
-      </div>
+      <div class="row"><button id="share-copy">Copy Link</button><button id="share-close">Close</button></div>
     </div>
   </div>
 
-  <script>
-    /* --------- Elements --------- */
-    const twitchInput = document.getElementById('twitch-input');
-    const saveTwitchBtn = document.getElementById('save-twitch-btn');
-    const ytInput = document.getElementById('yt-input');
-    const saveBtn = document.getElementById('save-btn');
+  <!-- Presets Modal -->
+  <div id="modal-presets" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>Presets</h3>
+      <div class="row"><button id="save-a">Save → A</button><button id="load-a">Load A</button></div>
+      <div class="row"><button id="save-b">Save → B</button><button id="load-b">Load B</button></div>
+      <div class="row"><button id="presets-close">Close</button></div>
+    </div>
+  </div>
 
-    const savePresetA = document.getElementById('save-preset-a');
-    const loadPresetA = document.getElementById('load-preset-a');
-    const savePresetB = document.getElementById('save-preset-b');
-    const loadPresetB = document.getElementById('load-preset-b');
+  <!-- More Modal -->
+  <div id="modal-more" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>More</h3>
+      <div class="row"><button id="popout-twitch-chat">Twitch Chat 🚀</button><button id="popout-yt-chat">YouTube Chat 🚀</button></div>
+      <div class="row"><button id="popout-twitch-stream">Twitch Stream ▶️</button><button id="popout-yt-stream">YouTube Stream ▶️</button></div>
+      <div class="row"><button id="more-close">Close</button></div>
+    </div>
+  </div>
 
-    const copyLinkBtn = document.getElementById('copy-share-link');
-    const showQrBtn = document.getElementById('show-qr');
-    const qrModal = document.getElementById('qr-modal');
-    const qrBox = document.getElementById('qr');
-    const qrCopy = document.getElementById('qr-copy');
-    const qrClose = document.getElementById('qr-close');
+<script>
+/* ========== Elements ========== */
+const twitchInput=document.getElementById('twitch-input');
+const ytInput=document.getElementById('yt-input');
+const saveBtn=document.getElementById('save-both');
 
-    const tabButtons = document.querySelectorAll('.tab-buttons button');
-    const tabsBar = document.getElementById('tabs');
+const tabs=document.querySelectorAll('.tab-buttons button');
+const containers=document.querySelectorAll('.chat-container');
 
-    const popoutTwitchBtn = document.getElementById('popout-twitch');
-    const popoutYoutubeBtn = document.getElementById('popout-youtube');
-    const popoutTwitchStreamBtn = document.getElementById('popout-twitch-stream');
-    const popoutYoutubeStreamBtn = document.getElementById('popout-youtube-stream');
+const twitchIframe=document.getElementById('twitch-iframe');
+const twitchOnly=document.getElementById('twitch-only-iframe');
+const ytIframe=document.getElementById('youtube-iframe');
+const ytOnly=document.getElementById('youtube-only-iframe');
 
-    const twitchIframe = document.getElementById('twitch-iframe');
-    const twitchOnlyIframe = document.getElementById('twitch-only-iframe');
-    const youtubeIframe = document.getElementById('youtube-iframe');
-    const youtubeOnlyIframe = document.getElementById('youtube-only-iframe');
+const btnReading=document.getElementById('btn-reading');
+const btnShare=document.getElementById('btn-share');
+const btnPresets=document.getElementById('btn-presets');
+const btnWake=document.getElementById('btn-wake');
+const btnMore=document.getElementById('btn-more');
 
-    const readingBtn = document.getElementById('toggle-reading');
-    const wakeBtn = document.getElementById('toggle-wake');
-    const statusPill = document.getElementById('status-pill');
+const modalShare=document.getElementById('modal-share');
+const modalPresets=document.getElementById('modal-presets');
+const modalMore=document.getElementById('modal-more');
+const qrBox=document.getElementById('qr');
 
-    const divider = document.getElementById('divider');
-    const split = document.getElementById('split');
+/* ========== Helpers ========== */
+const parentHost=window.location.hostname||'127.0.0.1';
+const TWITCH_EMBED=(ch)=>`https://www.twitch.tv/embed/${ch}/chat?parent=${parentHost}&darkpopout`;
+const YT_CHAT=(id)=>`https://www.youtube.com/live_chat?v=${id}&is_popout=1&embed_domain=${parentHost}`;
+const sanitizeTwitch=(c)=>c.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase();
+function extractYtId(v){if(!v)return'';const r=/^[A-Za-z0-9_-]{11}$/;if(r.test(v))return v;const m=v.match(/(?:v=|\/)([A-Za-z0-9_-]{11})/);return m?m[1]:'';}
 
-    /* --------- Constants / helpers --------- */
-    const DEFAULT_TWITCH_CHANNEL = 'suffolk';
-    const sanitizeTwitchChannel = (channel) => channel.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
-    const getTwitchChannel = () => {
-      const stored = localStorage.getItem('twitchChannel');
-      const sanitized = stored ? sanitizeTwitchChannel(stored) : '';
-      return sanitized || DEFAULT_TWITCH_CHANNEL;
-    };
-    const parentHost = window.location.hostname || '127.0.0.1';
-    // Twitch dark mode
-    const TWITCH_EMBED = (channel) => `https://www.twitch.tv/embed/${channel}/chat?parent=${parentHost}&darkpopout`;
-    const YT_CHAT = (id) => 'https://www.youtube.com/live_chat?v=' + id + '&is_popout=1&embed_domain=' + (window.location.hostname || '127.0.0.1');
+function buildShareUrl(tw=(localStorage.getItem('twitchChannel')||''), yt=(localStorage.getItem('ytId')||'')){
+  const u=new URL(location.href);
+  if(tw) u.searchParams.set('twitch',tw); else u.searchParams.delete('twitch');
+  if(yt) u.searchParams.set('yt',yt); else u.searchParams.delete('yt');
+  return u.toString();
+}
+function applyFromUrl(){
+  const p=new URLSearchParams(location.search);
+  const tw=p.get('twitch'); const yt=p.get('yt');
+  if(tw) localStorage.setItem('twitchChannel',sanitizeTwitch(tw));
+  if(yt) localStorage.setItem('ytId',extractYtId(yt));
+}
+function updateUrl(){ history.replaceState(null,'',buildShareUrl()); }
 
-    function extractYtId(input) {
-      if (!input) return '';
-      const idRegex = /^[A-Za-z0-9_-]{11}$/;
-      if (idRegex.test(input)) return input;
-      const urlRegex = /(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|live\/|embed\/|shorts\/|v\/)?([A-Za-z0-9_-]{11})/i;
-      const m = input.match(urlRegex);
-      return m && m[1] ? m[1] : '';
-    }
+/* ========== Load iframes ========== */
+function loadChats(){
+  const tw=localStorage.getItem('twitchChannel')||'';
+  const yt=localStorage.getItem('ytId')||'';
+  if(tw){
+    const s=TWITCH_EMBED(tw);
+    if(twitchIframe.src!==s) twitchIframe.src=s;
+    if(twitchOnly.src!==s) twitchOnly.src=s;
+    twitchInput.value=tw;
+  }
+  if(yt){
+    const s=YT_CHAT(yt);
+    if(ytIframe.src!==s) ytIframe.src=s;
+    if(ytOnly.src!==s) ytOnly.src=s;
+    ytInput.value=yt;
+  }
+}
 
-    /* --------- Viewport + tabs height --------- */
-    function setViewportVars(){
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
-      const reading = document.body.classList.contains('reading');
-      const tabHeight = reading ? 0 : (tabsBar?.offsetHeight || 56);
-      document.documentElement.style.setProperty('--tab-h', `${tabHeight}px`);
-    }
+/* ========== Save ========== */
+saveBtn.onclick=()=>{
+  const tw=sanitizeTwitch(twitchInput.value.trim());
+  const yt=extractYtId(ytInput.value.trim());
+  if(tw) localStorage.setItem('twitchChannel',tw);
+  if(yt) localStorage.setItem('ytId',yt);
+  loadChats(); updateUrl();
+};
 
-    /* --------- Load iframes --------- */
-    function loadChats() {
-      const ytId = localStorage.getItem('ytId') || '';
-      const twitchChannel = getTwitchChannel();
+/* ========== Tabs ========== */
+tabs.forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    tabs.forEach(b=>{b.classList.remove('active'); b.setAttribute('aria-selected','false');});
+    containers.forEach(c=>c.classList.remove('active'));
+    btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  },{passive:true});
+});
 
-      const twitchSrc = TWITCH_EMBED(twitchChannel);
-      if (twitchIframe.src !== twitchSrc) twitchIframe.src = twitchSrc;
-      if (twitchOnlyIframe.src !== twitchSrc) twitchOnlyIframe.src = twitchSrc;
-      twitchInput.value = twitchChannel;
+/* ========== Reading mode ========== */
+btnReading.onclick=()=>{
+  const on=!document.body.classList.contains('reading');
+  document.body.classList.toggle('reading',on);
+  localStorage.setItem('reading',on?'1':'0');
+};
 
-      if (ytId) {
-        const src = YT_CHAT(ytId);
-        if (youtubeIframe.src !== src) youtubeIframe.src = src;
-        if (youtubeOnlyIframe.src !== src) youtubeOnlyIframe.src = src;
-        ytInput.value = ytId;
-      } else {
-        youtubeIframe.src = '';
-        youtubeOnlyIframe.src = '';
-        ytInput.value = '';
-      }
-      updateStatusPill();
-    }
+/* ========== Wake Lock ========== */
+let wake=null;
+async function reqWake(){ try{ wake=await navigator.wakeLock?.request('screen'); btnWake.textContent='✅'; wake.addEventListener?.('release',()=>btnWake.textContent='🛌'); }catch{} }
+async function relWake(){ try{ await wake?.release(); }catch{} finally{ wake=null; btnWake.textContent='🛌'; } }
+btnWake.onclick=()=> wake?relWake():reqWake();
+document.addEventListener('visibilitychange',()=>{ if(wake && document.visibilityState==='visible') reqWake(); });
 
-    /* --------- URL share helpers --------- */
-    function buildShareUrl(tw = getTwitchChannel(), yt = localStorage.getItem('ytId') || '') {
-      const url = new URL(window.location.href);
-      url.searchParams.set('twitch', tw);
-      if (yt) url.searchParams.set('yt', yt); else url.searchParams.delete('yt');
-      return url.toString();
-    }
-    function applyFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      const tw = params.get('twitch');
-      const yt = params.get('yt');
-      if (tw) localStorage.setItem('twitchChannel', sanitizeTwitchChannel(tw));
-      if (yt) localStorage.setItem('ytId', extractYtId(yt));
-    }
-    function updateUrlParams() {
-      const url = buildShareUrl();
-      history.replaceState(null, '', url);
-    }
+/* ========== Share modal (QR + Copy) ========== */
+btnShare.onclick=()=>{
+  modalShare.classList.add('open');
+  qrBox.innerHTML='';
+  new QRCode(qrBox,{text:buildShareUrl(),width:200,height:200});
+};
+document.getElementById('share-copy').onclick=()=>navigator.clipboard.writeText(buildShareUrl());
+document.getElementById('share-close').onclick=()=>modalShare.classList.remove('open');
+modalShare.addEventListener('click',(e)=>{ if(e.target===modalShare) modalShare.classList.remove('open'); });
 
-    /* --------- Status pill --------- */
-    function shorten(id){ return id ? id.slice(0,5)+'…'+id.slice(-3) : '—'; }
-    function updateStatusPill(){
-      const tw = getTwitchChannel() || '—';
-      const yt = localStorage.getItem('ytId') || '';
-      statusPill.textContent = `Twitch: ${tw} · YouTube: ${yt ? shorten(yt) : '—'}`;
-    }
+/* ========== Presets modal ========== */
+btnPresets.onclick=()=>modalPresets.classList.add('open');
+document.getElementById('presets-close').onclick=()=>modalPresets.classList.remove('open');
+document.getElementById('save-a').onclick=()=>{localStorage.setItem('pa_tw',localStorage.getItem('twitchChannel')||'');localStorage.setItem('pa_yt',localStorage.getItem('ytId')||'');};
+document.getElementById('load-a').onclick=()=>{localStorage.setItem('twitchChannel',localStorage.getItem('pa_tw')||'');localStorage.setItem('ytId',localStorage.getItem('pa_yt')||'');loadChats();updateUrl();};
+document.getElementById('save-b').onclick=()=>{localStorage.setItem('pb_tw',localStorage.getItem('twitchChannel')||'');localStorage.setItem('pb_yt',localStorage.getItem('ytId')||'');};
+document.getElementById('load-b').onclick=()=>{localStorage.setItem('twitchChannel',localStorage.getItem('pb_tw')||'');localStorage.setItem('ytId',localStorage.getItem('pb_yt')||'');loadChats();updateUrl();};
+modalPresets.addEventListener('click',(e)=>{ if(e.target===modalPresets) modalPresets.classList.remove('open'); });
 
-    /* --------- Save / Load --------- */
-    saveTwitchBtn.addEventListener('click', async () => {
-      const channel = twitchInput.value.trim();
-      if (!channel) return alert('Please enter a Twitch channel name.');
-      const sanitized = sanitizeTwitchChannel(channel);
-      if (!sanitized) return alert('Please enter a valid Twitch channel name.');
-      localStorage.setItem('twitchChannel', sanitized);
-      loadChats();
-      updateUrlParams();
-      try {
-        await navigator.clipboard.writeText(buildShareUrl(sanitized, localStorage.getItem('ytId') || ''));
-        alert('Twitch channel saved. Share link copied!');
-      } catch {}
-    });
+/* ========== More (popouts) ========== */
+btnMore.onclick=()=>modalMore.classList.add('open');
+document.getElementById('more-close').onclick=()=>modalMore.classList.remove('open');
+modalMore.addEventListener('click',(e)=>{ if(e.target===modalMore) modalMore.classList.remove('open'); });
 
-    saveBtn.addEventListener('click', async () => {
-      const id = extractYtId(ytInput.value.trim());
-      if (!id) return alert('Please paste your actual LIVE URL or the 11-character video ID.');
-      localStorage.setItem('ytId', id);
-      loadChats();
-      updateUrlParams();
-      try {
-        await navigator.clipboard.writeText(buildShareUrl());
-        alert('YouTube ID saved. Share link copied!');
-      } catch {}
-    });
+document.getElementById('popout-twitch-chat').onclick=()=>{
+  const tw=localStorage.getItem('twitchChannel'); if(!tw) return alert('Save a Twitch channel first.');
+  window.open(`https://www.twitch.tv/popout/${tw}/chat?popout=`,'_blank','noopener');
+};
+document.getElementById('popout-yt-chat').onclick=()=>{
+  const yt=localStorage.getItem('ytId'); if(!yt) return alert('Save your YouTube LIVE ID first.');
+  window.open(YT_CHAT(yt),'_blank','noopener');
+};
+document.getElementById('popout-twitch-stream').onclick=()=>{
+  const tw=localStorage.getItem('twitchChannel'); if(!tw) return alert('Save a Twitch channel first.');
+  window.open(`https://player.twitch.tv/?channel=${tw}&parent=${parentHost}`,'_blank','noopener');
+};
+document.getElementById('popout-yt-stream').onclick=()=>{
+  const yt=localStorage.getItem('ytId'); if(!yt) return alert('Save your YouTube LIVE ID first.');
+  window.open(`https://www.youtube.com/embed/${yt}?autoplay=1&modestbranding=1&rel=0`,'_blank','noopener');
+};
 
-    /* --------- Presets (A/B) --------- */
-    function savePreset(slot){
-      localStorage.setItem(`preset_${slot}_tw`, getTwitchChannel());
-      localStorage.setItem(`preset_${slot}_yt`, localStorage.getItem('ytId') || '');
-      alert(`Saved to Preset ${slot.toUpperCase()}`);
-    }
-    function loadPreset(slot){
-      const tw = localStorage.getItem(`preset_${slot}_tw`);
-      const yt = localStorage.getItem(`preset_${slot}_yt`);
-      if (!tw && !yt){ alert(`Preset ${slot.toUpperCase()} is empty.`); return; }
-      if (tw) localStorage.setItem('twitchChannel', sanitizeTwitchChannel(tw));
-      if (yt) localStorage.setItem('ytId', extractYtId(yt)); else localStorage.removeItem('ytId');
-      loadChats();
-      updateUrlParams();
-    }
-    savePresetA.addEventListener('click', () => savePreset('a'));
-    savePresetB.addEventListener('click', () => savePreset('b'));
-    loadPresetA.addEventListener('click', () => loadPreset('a'));
-    loadPresetB.addEventListener('click', () => loadPreset('b'));
-
-    /* --------- Share link & QR --------- */
-    copyLinkBtn.addEventListener('click', async () => {
-      const link = buildShareUrl();
-      try { await navigator.clipboard.writeText(link); alert('Share link copied!'); }
-      catch { prompt('Copy this link:', link); }
-    });
-
-    let qrObj = null;
-    showQrBtn.addEventListener('click', () => {
-      const link = buildShareUrl();
-      qrModal.classList.add('open'); qrModal.setAttribute('aria-hidden','false');
-      qrBox.innerHTML = '';
-      qrObj = new QRCode(qrBox, { text: link, width: 256, height: 256 });
-    });
-    qrClose.addEventListener('click', () => {
-      qrModal.classList.remove('open'); qrModal.setAttribute('aria-hidden','true');
-      qrBox.innerHTML = '';
-      qrObj = null;
-    });
-    qrModal.addEventListener('click', (e) => { if (e.target === qrModal) qrClose.click(); });
-    qrCopy.addEventListener('click', async () => {
-      const link = buildShareUrl();
-      try { await navigator.clipboard.writeText(link); alert('Link copied!'); }
-      catch { prompt('Copy this link:', link); }
-    });
-
-    /* --------- Tabs --------- */
-    tabButtons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        tabButtons.forEach((b) => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
-        document.querySelectorAll('.chat-container').forEach((c) => c.classList.remove('active'));
-        btn.classList.add('active'); btn.setAttribute('aria-selected','true');
-        const tab = btn.getAttribute('data-tab');
-        document.getElementById(tab)?.classList.add('active');
-      }, { passive: true });
-    });
-
-    /* --------- Popouts --------- */
-    popoutTwitchBtn.addEventListener('click', () => {
-      const channel = getTwitchChannel();
-      window.open(`https://www.twitch.tv/popout/${channel}/chat?popout=`, '_blank', 'noopener');
-    });
-    popoutYoutubeBtn.addEventListener('click', () => {
-      const id = localStorage.getItem('ytId');
-      if (!id) return alert('Save your YouTube LIVE ID first.');
-      window.open(YT_CHAT(id), '_blank', 'noopener');
-    });
-    popoutTwitchStreamBtn.addEventListener('click', () => {
-      const channel = getTwitchChannel();
-      const url = `https://player.twitch.tv/?channel=${channel}&parent=${parentHost}`;
-      window.open(url, '_blank', 'noopener');
-    });
-    popoutYoutubeStreamBtn.addEventListener('click', () => {
-      const id = localStorage.getItem('ytId');
-      if (!id) return alert('Save your YouTube LIVE ID first.');
-      const url = `https://www.youtube.com/embed/${id}?autoplay=1&modestbranding=1&rel=0`;
-      window.open(url, '_blank', 'noopener');
-    });
-
-    /* --------- One-tap Reading mode --------- */
-    function applyReadingFromStorage(){
-      const on = localStorage.getItem('readingMode') === '1';
-      document.body.classList.toggle('reading', on);
-      setViewportVars();
-    }
-    readingBtn.addEventListener('click', () => {
-      const next = !document.body.classList.contains('reading');
-      document.body.classList.toggle('reading', next);
-      localStorage.setItem('readingMode', next ? '1' : '0');
-      setViewportVars();
-    });
-
-    /* --------- Wake Lock (Keep screen awake) --------- */
-    let wakeLock = null;
-    async function requestWakeLock(){
-      try{
-        wakeLock = await navigator.wakeLock?.request('screen');
-        wakeBtn.textContent = 'Awake ✅';
-        wakeLock.addEventListener?.('release', () => { wakeBtn.textContent = 'Keep Awake 💤'; });
-      }catch(e){ alert('Wake Lock not available on this device/browser.'); }
-    }
-    async function releaseWakeLock(){ try{ await wakeLock?.release(); }catch{} finally{ wakeLock=null; wakeBtn.textContent='Keep Awake 💤'; } }
-    wakeBtn.addEventListener('click', () => { wakeLock ? releaseWakeLock() : requestWakeLock(); });
-    document.addEventListener('visibilitychange', () => { if (wakeLock && document.visibilityState === 'visible') requestWakeLock(); });
-
-    /* --------- Draggable split (touch-friendly) --------- */
-    function applySplitFromStorage(){
-      const stored = parseFloat(localStorage.getItem('splitPercent'));
-      const pct = isNaN(stored) ? 50 : Math.min(90, Math.max(10, stored));
-      document.documentElement.style.setProperty('--split', pct);
-    }
-    function setSplitPercent(pct){
-      const clamped = Math.min(90, Math.max(10, pct));
-      document.documentElement.style.setProperty('--split', clamped);
-      localStorage.setItem('splitPercent', clamped);
-    }
-    let dragging = false;
-    let orientationPortrait = window.matchMedia('(orientation: portrait)').matches;
-
-    function onPointerDown(e){
-      dragging = true;
-      divider.setPointerCapture?.(e.pointerId || 1);
-      e.preventDefault();
-    }
-    function onPointerMove(e){
-      if (!dragging) return;
-      const rect = split.getBoundingClientRect();
-      if (orientationPortrait){
-        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-        const pct = (y / rect.height) * 100;
-        setSplitPercent(pct);
-      }else{
-        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-        const pct = (x / rect.width) * 100;
-        setSplitPercent(pct);
-      }
-    }
-    function onPointerUp(){ dragging = false; }
-
-    divider.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-
-    divider.addEventListener('touchstart', onPointerDown, {passive:false});
-    window.addEventListener('touchmove', onPointerMove, {passive:false});
-    window.addEventListener('touchend', onPointerUp);
-
-    /* --------- Init --------- */
-    document.addEventListener('DOMContentLoaded', () => {
-      applyFromUrl();
-      applyReadingFromStorage();
-      applySplitFromStorage();
-      setViewportVars();
-      loadChats();
-
-      updateUrlParams();
-
-      // Keep orientation flag updated
-      window.addEventListener('orientationchange', () => {
-        orientationPortrait = window.matchMedia('(orientation: portrait)').matches;
-        setTimeout(setViewportVars, 200);
-      });
-    });
-
-    window.addEventListener('resize', setViewportVars);
-  </script>
+/* ========== Init ========== */
+function setVH(){ document.documentElement.style.setProperty('--vh', `${window.innerHeight*0.01}px`); }
+applyFromUrl(); loadChats(); updateUrl();
+if(localStorage.getItem('reading')==='1') document.body.classList.add('reading');
+setVH(); window.addEventListener('resize', setVH);
+</script>
 </body>
 </html>
