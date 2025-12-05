@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
-  
-  <!-- iOS Full Screen / PWA Capabilities -->
+   
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#000000">
   <title>Stream Multi Chat 🎮</title>
-  <link rel="icon" href="https://www.youtube.com/s/desktop/ffaa45ee/img/favicon_32.png" type="image/png">
+  <link rel="icon" href="https://kick.com/favicon.ico" type="image/x-icon">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
-  
+   
   <style>
     :root{
       --tab-h: 48px;
       --bg:#000; --hdr:#333; --txt:#fff; --border:#555;
-      --accent:#61afef; --tab-bg:#444; --tab-active:#61afef;
+      --accent:#53fc18; /* Kick Green Accent */
+      --tab-bg:#444; --tab-active:#53fc18; --tab-txt-active:#000;
       --btn:38px;
     }
 
@@ -25,13 +25,12 @@
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       display: flex; flex-direction: column; 
-      height: 100dvh; /* Mobile browser friendly height */
+      height: 100dvh; 
       margin: 0; padding: 0;
       background: var(--bg);
       -webkit-font-smoothing: antialiased; 
       text-rendering: optimizeLegibility; 
-      
-      /* Handle iPhone 16 Landscape Notch/Island */
+       
       padding-left: env(safe-area-inset-left);
       padding-right: env(safe-area-inset-right);
     }
@@ -51,25 +50,25 @@
       width:var(--btn); height:var(--btn); border:none; border-radius:999px; background:#4a4a4a; color:#fff;
       display:grid; place-items:center; box-shadow:0 2px 6px rgba(0,0,0,.25); cursor:pointer;
     }
-    .icon-btn.primary{ background:var(--accent); }
+    .icon-btn.primary{ background:var(--accent); color:#000; }
 
     /* Inputs */
     .controls{
       margin-top:8px;
-      display:grid; grid-template-columns: 1fr 1fr auto; gap:8px;
+      display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap:8px;
     }
     .controls input{
       padding:10px; border:1px solid var(--border); border-radius:8px; background:#222; color:#fff; 
-      font-size:16px; /* Prevents iOS Zoom */
-      min-width:0;
+      font-size:14px; min-width:0;
     }
     .controls button.save{
-      padding:10px 14px; border:none; border-radius:8px; background:var(--accent); color:#fff; font-size:15px; cursor:pointer;
+      padding:10px 14px; border:none; border-radius:8px; background:var(--accent); color:#000; font-weight:bold; font-size:15px; cursor:pointer;
       white-space:nowrap;
     }
-    @media (max-width: 560px){
-      .controls{ grid-template-columns: 1fr; }
-      .controls button.save{ width:100%; }
+    @media (max-width: 600px){
+      .controls{ grid-template-columns: 1fr 1fr; }
+      .controls button.save{ grid-column: span 2; }
+      #kick-input { grid-column: span 2; }
     }
 
     /* Chat Area */
@@ -77,11 +76,12 @@
     .chat-container{ flex:1; display:none; flex-direction:column; width: 100%; height: 100%; }
     .chat-container.active{ display:flex; }
     
+    /* Layouts */
     .split{ flex:1; display:flex; gap:2px; padding:0; height: 100%; width: 100%; }
     @media (orientation: landscape){ .split{ flex-direction:row; } }
     @media (orientation: portrait){ .split{ flex-direction:column; } }
 
-    .pane, .single{ flex:1; display:flex; position: relative; width: 100%; height: 100%; overflow: hidden; }
+    .pane, .single{ flex:1; display:flex; position: relative; width: 100%; height: 100%; overflow: hidden; border-right: 1px solid #333; }
     iframe{ position: absolute; top:0; left:0; width:100%; height:100%; background:#000; border:0; }
 
     /* Tabs */
@@ -89,10 +89,10 @@
       display:flex; background:var(--tab-bg);
       padding-bottom: env(safe-area-inset-bottom); 
       box-shadow:0 -2px 5px rgba(0,0,0,.15); z-index:20; 
-      flex-shrink: 0; min-height: var(--tab-h);
+      flex-shrink: 0; min-height: var(--tab-h); overflow-x: auto;
     }
-    .tab-buttons button{ flex:1; border:none; background:transparent; color:#fff; font-size:15px; padding: 12px 0; }
-    .tab-buttons button.active{ background:var(--tab-active); }
+    .tab-buttons button{ flex:1; min-width: 70px; border:none; background:transparent; color:#fff; font-size:14px; padding: 12px 0; white-space: nowrap; }
+    .tab-buttons button.active{ background:var(--tab-active); color: var(--tab-txt-active); font-weight: bold; }
 
     /* Reading Mode */
     body.reading header, body.reading .tab-buttons { display:none; }
@@ -114,7 +114,6 @@
 </head>
 <body>
 
-  <!-- Hidden triggers to exit full screen mode -->
   <div id="hz-top" class="hotzone top"></div>
   <div id="hz-bottom" class="hotzone bottom"></div>
 
@@ -125,44 +124,59 @@
       </div>
       <h2>Stream Multi Chat</h2>
       <div class="toolbar">
-        <!-- The Sync Button -->
         <button id="btn-sync" class="icon-btn primary" title="Sync to Phone">📲</button>
         <button id="btn-more" class="icon-btn" title="More">⋯</button>
       </div>
     </div>
     <div class="controls">
-      <input id="twitch-input" type="text" placeholder="Twitch Channel" />
-      <input id="yt-input" type="text" placeholder="YT Link or ID" />
-      <button id="save-both" class="save">Load</button>
+      <input id="twitch-input" type="text" placeholder="Twitch" />
+      <input id="yt-input" type="text" placeholder="YouTube ID" />
+      <input id="kick-input" type="text" placeholder="Kick" />
+      <button id="save-all" class="save">Load</button>
     </div>
   </header>
 
   <div class="chat-wrapper">
-    <div id="both" class="chat-container active">
+    
+    <div id="triple" class="chat-container active">
+      <div class="split">
+        <div class="pane"><iframe id="tri-twitch"></iframe></div>
+        <div class="pane"><iframe id="tri-youtube"></iframe></div>
+        <div class="pane"><iframe id="tri-kick"></iframe></div>
+      </div>
+    </div>
+
+    <div id="both" class="chat-container">
       <div class="split">
         <div class="pane"><iframe id="twitch-iframe"></iframe></div>
         <div class="pane"><iframe id="youtube-iframe"></iframe></div>
       </div>
     </div>
+
     <div id="twitch" class="chat-container">
       <div class="single"><iframe id="twitch-only-iframe"></iframe></div>
     </div>
     <div id="youtube" class="chat-container">
       <div class="single"><iframe id="youtube-only-iframe"></iframe></div>
     </div>
+    <div id="kick" class="chat-container">
+      <div class="single"><iframe id="kick-only-iframe"></iframe></div>
+    </div>
+
   </div>
 
   <div id="tabs" class="tab-buttons">
-    <button class="active" data-tab="both">Both</button>
+    <button class="active" data-tab="triple">All 3</button>
+    <button data-tab="both">Twitch+YT</button>
     <button data-tab="twitch">Twitch</button>
     <button data-tab="youtube">YouTube</button>
+    <button data-tab="kick">Kick</button>
   </div>
 
-  <!-- SYNC Modal -->
   <div id="modal-sync" class="modal">
     <div class="modal-card">
-      <h3>Sync to iPhone</h3>
-      <p>Scan this on your phone to load these channels automatically.</p>
+      <h3>Sync to Mobile</h3>
+      <p>Scan to load current channels.</p>
       <div id="qr" class="qr-box"></div>
       <div class="row">
         <button id="sync-close">Done</button>
@@ -170,13 +184,13 @@
     </div>
   </div>
 
-  <!-- More Modal -->
   <div id="modal-more" class="modal">
     <div class="modal-card">
       <h3>Options</h3>
       <div class="row">
         <button id="popout-twitch-stream">Watch Twitch</button>
         <button id="popout-yt-stream">Watch YT</button>
+        <button id="popout-kick-stream">Watch Kick</button>
       </div>
       <div class="row"><button id="reload-page">Refresh Page</button><button id="more-close">Close</button></div>
     </div>
@@ -186,18 +200,23 @@
 /* --- 1. Variables --- */
 const twitchInput = document.getElementById('twitch-input');
 const ytInput = document.getElementById('yt-input');
-const saveBtn = document.getElementById('save-both');
-const twitchIframe = document.getElementById('twitch-iframe');
-const twitchOnly = document.getElementById('twitch-only-iframe');
-const ytIframe = document.getElementById('youtube-iframe');
-const ytOnly = document.getElementById('youtube-only-iframe');
+const kickInput = document.getElementById('kick-input');
+const saveBtn = document.getElementById('save-all');
 const parentHost = window.location.hostname || '127.0.0.1';
+
+// Iframe References
+const iframes = {
+  twitch: [document.getElementById('tri-twitch'), document.getElementById('twitch-iframe'), document.getElementById('twitch-only-iframe')],
+  yt: [document.getElementById('tri-youtube'), document.getElementById('youtube-iframe'), document.getElementById('youtube-only-iframe')],
+  kick: [document.getElementById('tri-kick'), document.getElementById('kick-only-iframe')]
+};
 
 /* --- 2. URL Generators --- */
 const TWITCH_EMBED = (ch) => `https://www.twitch.tv/embed/${ch}/chat?parent=${parentHost}&darkpopout`;
 const YT_CHAT = (id) => `https://www.youtube.com/live_chat?v=${id}&is_popout=1&embed_domain=${parentHost}`;
+const KICK_CHAT = (ch) => `https://kick.com/embed/chat/${ch}`;
 
-const sanitizeTwitch = (c) => c.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase();
+const sanitize = (c) => c ? c.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase() : '';
 const extractYtId = (v) => {
   if(!v) return '';
   const m = v.match(/(?:v=|youtu\.be\/|\/live\/)([A-Za-z0-9_-]{11})/);
@@ -208,31 +227,37 @@ const extractYtId = (v) => {
 function loadChats() {
   const tw = localStorage.getItem('twitchChannel') || '';
   const yt = localStorage.getItem('ytId') || '';
+  const ki = localStorage.getItem('kickChannel') || '';
 
   if (tw) {
-    const url = TWITCH_EMBED(tw);
-    if(twitchIframe.src !== url) twitchIframe.src = url;
-    if(twitchOnly.src !== url) twitchOnly.src = url;
     twitchInput.value = tw;
+    const url = TWITCH_EMBED(tw);
+    iframes.twitch.forEach(f => { if(f.src !== url) f.src = url; });
   }
   if (yt) {
-    const url = YT_CHAT(yt);
-    if(ytIframe.src !== url) ytIframe.src = url;
-    if(ytOnly.src !== url) ytOnly.src = url;
     ytInput.value = yt;
+    const url = YT_CHAT(yt);
+    iframes.yt.forEach(f => { if(f.src !== url) f.src = url; });
+  }
+  if (ki) {
+    kickInput.value = ki;
+    const url = KICK_CHAT(ki);
+    iframes.kick.forEach(f => { if(f.src !== url) f.src = url; });
   }
 }
 
 // Button Click
 saveBtn.onclick = () => {
-  const tw = sanitizeTwitch(twitchInput.value.trim());
+  const tw = sanitize(twitchInput.value.trim());
   const yt = extractYtId(ytInput.value.trim());
+  const ki = sanitize(kickInput.value.trim());
   
   if(tw) localStorage.setItem('twitchChannel', tw);
   if(yt) localStorage.setItem('ytId', yt);
+  if(ki) localStorage.setItem('kickChannel', ki);
   
   loadChats();
-  updateSyncUrl(); // Update URL bar for easy copying
+  updateSyncUrl();
 };
 
 /* --- 4. Sync Logic (Desktop -> Phone) --- */
@@ -240,8 +265,11 @@ function buildSyncUrl() {
   const u = new URL(location.href);
   const tw = localStorage.getItem('twitchChannel');
   const yt = localStorage.getItem('ytId');
+  const ki = localStorage.getItem('kickChannel');
+  
   if (tw) u.searchParams.set('twitch', tw);
   if (yt) u.searchParams.set('yt', yt);
+  if (ki) u.searchParams.set('kick', ki);
   return u.toString();
 }
 
@@ -249,20 +277,20 @@ function updateSyncUrl() {
   history.replaceState(null, '', buildSyncUrl());
 }
 
-// On Page Load: Check if we are the phone receiving data
+// On Page Load: Check URL Params
 const p = new URLSearchParams(location.search);
-const incomingTwitch = p.get('twitch');
-const incomingYt = p.get('yt');
+const iTwitch = p.get('twitch');
+const iYt = p.get('yt');
+const iKick = p.get('kick');
 
-if (incomingTwitch || incomingYt) {
-  if(incomingTwitch) localStorage.setItem('twitchChannel', sanitizeTwitch(incomingTwitch));
-  if(incomingYt) localStorage.setItem('ytId', extractYtId(incomingYt));
+if (iTwitch || iYt || iKick) {
+  if(iTwitch) localStorage.setItem('twitchChannel', sanitize(iTwitch));
+  if(iYt) localStorage.setItem('ytId', extractYtId(iYt));
+  if(iKick) localStorage.setItem('kickChannel', sanitize(iKick));
   
-  // Clean URL so the user doesn't see ugly parameters forever
   window.history.replaceState({}, document.title, window.location.pathname);
 }
 
-// Load whatever is in storage (whether existing or just saved from URL)
 loadChats();
 
 /* --- 5. UI Interactivity --- */
@@ -292,13 +320,10 @@ hzBottom.onclick = () => setReading(false);
 // Sync Modal
 const modalSync = document.getElementById('modal-sync');
 const qrBox = document.getElementById('qr');
-const btnSync = document.getElementById('btn-sync');
-
-btnSync.onclick = () => {
-  updateSyncUrl(); // Ensure URL is fresh
+document.getElementById('btn-sync').onclick = () => {
+  updateSyncUrl(); 
   modalSync.classList.add('open');
   qrBox.innerHTML = '';
-  // Generate QR pointing to the current URL with Params
   new QRCode(qrBox, { text: buildSyncUrl(), width: 200, height: 200 });
 };
 document.getElementById('sync-close').onclick = () => modalSync.classList.remove('open');
@@ -318,8 +343,11 @@ document.getElementById('popout-yt-stream').onclick = () => {
   const yt = localStorage.getItem('ytId');
   if(yt) window.open(`https://www.youtube.com/embed/${yt}?autoplay=1`, '_blank');
 };
+document.getElementById('popout-kick-stream').onclick = () => {
+  const ki = localStorage.getItem('kickChannel');
+  if(ki) window.open(`https://kick.com/${ki}`, '_blank');
+};
 
-// Close modals on background click
 [modalSync, modalMore].forEach(m => {
   m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); });
 });
