@@ -3,100 +3,105 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
-<title>Multistream Chat</title>
+<title>Ultimate Stream Dashboard</title>
 <style>
+  /* --- BASE STYLES --- */
   html, body { 
-    margin: 0; 
-    padding: 0; 
-    height: 100dvh; /* Uses dynamic height to avoid Safari bar issues */
-    width: 100vw;
+    margin: 0; padding: 0; 
+    height: 100dvh; width: 100vw;
     background-color: #000000;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     overflow: hidden; 
   }
   
-  /* Container that respects the Notch and Dynamic Island */
   .container {
-    width: 100%;
-    height: 100%;
+    display: flex; flex-direction: column;
+    width: 100%; height: 100%;
     box-sizing: border-box;
+    /* Safe Area Insets (iPhone Notch / Dynamic Island) */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+    position: relative;
+  }
+
+  iframe { width: 100%; height: 100%; border: none; display: block; }
+
+  /* --- LABELS --- */
+  .label {
+    position: absolute; left: 12px; top: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    color: #fff; padding: 4px 10px; border-radius: 12px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+    border: 1px solid rgba(255,255,255,0.1);
+    pointer-events: none; z-index: 10;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .dot { height: 6px; width: 6px; background-color: #00ff88; border-radius: 50%; box-shadow: 0 0 5px #00ff88; }
+
+  /* --- SECTIONS --- */
+  /* 1. CHAT (Top 65% of screen) */
+  .chat-section {
+    flex: 65; 
+    position: relative;
+    border-bottom: 1px solid #333;
     background: #0d0d0d;
   }
 
-  iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-    display: block;
+  /* 2. ACTIVITY FEED (Bottom 35% of screen) */
+  .activity-section {
+    flex: 35; 
+    position: relative;
+    background: #000;
   }
 
-  /* Status Label */
-  .label {
+  /* 3. ALERTS OVERLAY (Invisible Layer on Top) */
+  .alerts-layer {
     position: absolute;
-    top: max(15px, env(safe-area-inset-top) + 10px);
-    left: 20px;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    color: #fff;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    pointer-events: none;
-    border: 1px solid rgba(255,255,255,0.15);
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  /* Green "Live" Dot */
-  .dot {
-    height: 8px; width: 8px; 
-    background-color: #00ff88; 
-    border-radius: 50%;
-    box-shadow: 0 0 6px #00ff88;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; /* Allows clicks to pass through to Chat */
+    z-index: 50; /* Sits above everything */
   }
 </style>
 </head>
 <body>
 
   <div class="container">
-    <div class="label">
-      <div class="dot"></div>
-      ALL CHATS
-    </div>
     
-    <iframe 
-      src="https://botrix.live/widgets/chat/?bid=bVvmmN942GtNeeUg3AWhJg&bots=false&emojis=true&hideCommands=false&hideMessages=false&hideMessagesSeconds=10&widgetSize=21&trovo=false&twitch=true&youtube=true&kick=true&platformIcon=true&theme=default&ignoredUsers=&streamTogether=true&cheer=true&pointsReward=false&animation=none&showTimestamp=false&shadowThickness=1" 
-      allow="autoplay; fullscreen">
-    </iframe>
+    <div class="alerts-layer">
+      <iframe src="https://botrix.live/widgets/alerts/?bid=bVvmmN942GtNeeUg3AWhJg" allow="autoplay; fullscreen"></iframe>
+    </div>
+
+    <div class="chat-section">
+      <div class="label"><div class="dot"></div> CHAT</div>
+      <iframe src="https://botrix.live/widgets/chat/?bid=bVvmmN942GtNeeUg3AWhJg&bots=false&emojis=true&hideCommands=false&hideMessages=false&hideMessagesSeconds=10&widgetSize=21&trovo=false&twitch=true&youtube=true&kick=true&platformIcon=true&theme=default&ignoredUsers=&streamTogether=true&cheer=true&pointsReward=false&animation=none&showTimestamp=false&shadowThickness=1" allow="autoplay; fullscreen"></iframe>
+    </div>
+
+    <div class="activity-section">
+      <div class="label" style="top: 8px; left: 12px; background: rgba(50,50,50,0.5);">ACTIVITY FEED</div>
+      <iframe src="https://botrix.live/widgets/activityfeed/?bid=bVvmmN942GtNeeUg3AWhJg" allow="autoplay; fullscreen"></iframe>
+    </div>
+
   </div>
 
   <script>
-    // Wake Lock: Keeps iPhone screen ON
+    // WAKE LOCK: Keeps iPhone screen ON
     let wakeLock = null;
     async function requestWakeLock() {
       if ('wakeLock' in navigator) {
-        try {
-          wakeLock = await navigator.wakeLock.request('screen');
-          console.log('Screen Wake Lock Active');
-        } catch (err) { console.error(err); }
+        try { 
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Wake Lock Active'); 
+        } catch (e) { console.error(e); }
       }
     }
     requestWakeLock();
     
-    // Re-engage lock if you tab out and back
+    // Re-engage lock if you tab out and return
     document.addEventListener('visibilitychange', async () => {
-      if (wakeLock !== null && document.visibilityState === 'visible') {
-        await requestWakeLock();
-      }
+      if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
     });
   </script>
 
