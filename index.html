@@ -74,19 +74,14 @@
   .alerts-layer {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; /* Clicks pass through */
+    pointer-events: none;
     z-index: 50;
-
-    /* Centers the alert in the middle of the screen */
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .alerts-layer iframe {
-    /* SCALE: 0.6 = 60% size. 
-       Change this number to make alerts bigger (0.8) or smaller (0.4) 
-    */
     transform: scale(0.6); 
     width: 100%;
     height: 100%;
@@ -95,16 +90,12 @@
   /* --- VIEWER COUNTERS (TOP RIGHT HUD) --- */
   .viewers-hud{
     position: absolute;
-    z-index: 60; /* above alerts (50) and labels (10) */
+    z-index: 60;
     display: flex;
     gap: 6px;
     align-items: center;
-
     top: calc(env(safe-area-inset-top) + 8px);
     right: calc(env(safe-area-inset-right) + 12px);
-
-    /* Keep chat fully usable (taps pass through). 
-       Change to pointer-events:auto; if you want to tap the counters. */
     pointer-events: none;
   }
 
@@ -119,7 +110,6 @@
     -webkit-backdrop-filter: blur(8px);
   }
 
-  /* Override the global iframe rule for these small cards */
   .viewer-card iframe{
     width: 100%;
     height: 100%;
@@ -127,7 +117,6 @@
     display: block;
   }
 
-  /* LANDSCAPE: Smaller, compact viewer cards */
   @media (orientation: landscape){
     .viewers-hud {
       gap: 4px;
@@ -141,13 +130,104 @@
       border-radius: 10px;
     }
   }
+
+  /* --- ACTIVITY FEED TABS --- */
+  .activity-frame {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  
+  .activity-frame.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Floating Tab Switcher */
+  .tab-switcher {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 20;
+    display: flex;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .tab-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+  }
+
+  .tab-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: rgba(255,255,255,0.5);
+    transition: fill 0.2s ease;
+  }
+
+  .tab-btn:hover svg {
+    fill: rgba(255,255,255,0.8);
+  }
+
+  .tab-btn.active {
+    background: rgba(255,255,255,0.15);
+  }
+
+  .tab-btn.active svg {
+    fill: #ffffff;
+  }
+
+  /* Twitch purple when active */
+  .tab-btn.twitch.active svg {
+    fill: #9146FF;
+  }
+
+  /* Botrix green when active */
+  .tab-btn.botrix.active svg {
+    fill: #00ff88;
+  }
+
+  @media (orientation: landscape) {
+    .tab-switcher {
+      bottom: 8px;
+      right: 8px;
+    }
+    
+    .tab-btn {
+      width: 28px;
+      height: 28px;
+    }
+    
+    .tab-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
 </style>
 </head>
 <body>
 
   <div class="container">
 
-    <!-- VIEWER COUNTERS HUD (YOUTUBE + TWITCH) -->
+    <!-- VIEWER COUNTERS HUD -->
     <div class="viewers-hud">
       <div class="viewer-card">
         <iframe
@@ -156,7 +236,6 @@
           scrolling="no"
         ></iframe>
       </div>
-
       <div class="viewer-card">
         <iframe
           src="https://botrix.live/widgets/viewers/?platform=twitch&bid=bVvmmN942GtNeeUg3AWhJg&font=Arial&rounded=1&showIcon=1&align=center&c=01010180#ffffff"
@@ -171,21 +250,66 @@
       <iframe src="https://botrix.live/widgets/alerts/?bid=bVvmmN942GtNeeUg3AWhJg" allow="autoplay; fullscreen"></iframe>
     </div>
 
-    <!-- CHAT -->
+    <!-- CHAT (Botrix Combined) -->
     <div class="chat-section">
       <div class="label"><div class="dot"></div> CHAT</div>
       <iframe src="https://botrix.live/widgets/chat/?bid=bVvmmN942GtNeeUg3AWhJg&bots=false&emojis=true&hideCommands=false&hideMessages=false&hideMessagesSeconds=10&widgetSize=21&trovo=false&twitch=true&youtube=true&kick=true&platformIcon=true&theme=default&ignoredUsers=&streamTogether=true&cheer=true&pointsReward=false&animation=none&showTimestamp=false&shadowThickness=1" allow="autoplay; fullscreen"></iframe>
     </div>
 
-    <!-- ACTIVITY FEED -->
+    <!-- ACTIVITY FEED (Tabbed) -->
     <div class="activity-section">
-      <div class="label" style="top: 8px; left: 12px; background: rgba(50,50,50,0.5);">ACTIVITY FEED</div>
-      <iframe src="https://botrix.live/widgets/activityfeed/?bid=bVvmmN942GtNeeUg3AWhJg" allow="autoplay; fullscreen"></iframe>
+      <div class="label" style="top: 8px; left: 12px; background: rgba(50,50,50,0.5);">ACTIVITY</div>
+      
+      <!-- Botrix Activity Feed (default) -->
+      <div class="activity-frame active" id="botrix-feed">
+        <iframe src="https://botrix.live/widgets/activityfeed/?bid=bVvmmN942GtNeeUg3AWhJg" allow="autoplay; fullscreen"></iframe>
+      </div>
+      
+      <!-- Twitch Native Activity Feed -->
+      <div class="activity-frame" id="twitch-feed">
+        <iframe src="https://dashboard.twitch.tv/popout/u/suffolk/stream-manager/activity-feed?uuid=545ed861cca6445d3cedede351cbc150" allow="autoplay; fullscreen"></iframe>
+      </div>
+
+      <!-- Floating Tab Switcher -->
+      <div class="tab-switcher">
+        <!-- Botrix Icon (robot/combined) -->
+        <button class="tab-btn botrix active" onclick="switchTab('botrix')" title="Botrix (All Platforms)">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+        </button>
+        <!-- Twitch Icon -->
+        <button class="tab-btn twitch" onclick="switchTab('twitch')" title="Twitch Native">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
   </div>
 
   <script>
+    /* TAB SWITCHING */
+    function switchTab(tab) {
+      const botrixFeed = document.getElementById('botrix-feed');
+      const twitchFeed = document.getElementById('twitch-feed');
+      const botrixBtn = document.querySelector('.tab-btn.botrix');
+      const twitchBtn = document.querySelector('.tab-btn.twitch');
+
+      if (tab === 'botrix') {
+        botrixFeed.classList.add('active');
+        twitchFeed.classList.remove('active');
+        botrixBtn.classList.add('active');
+        twitchBtn.classList.remove('active');
+      } else {
+        twitchFeed.classList.add('active');
+        botrixFeed.classList.remove('active');
+        twitchBtn.classList.add('active');
+        botrixBtn.classList.remove('active');
+      }
+    }
+
     /* WAKE LOCK */
     let wakeLock = null;
     async function requestWakeLock() {
