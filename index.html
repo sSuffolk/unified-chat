@@ -97,7 +97,7 @@
     position: absolute;
     z-index: 60; /* above alerts (50) and labels (10) */
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
 
     top: calc(env(safe-area-inset-top) + 8px);
@@ -127,10 +127,18 @@
     display: block;
   }
 
+  /* LANDSCAPE: Smaller, compact viewer cards */
   @media (orientation: landscape){
+    .viewers-hud {
+      gap: 4px;
+      top: calc(env(safe-area-inset-top) + 4px);
+      right: calc(env(safe-area-inset-right) + 8px);
+    }
+    
     .viewer-card{
-      width: clamp(130px, 18vw, 170px);
-      height: 34px;
+      width: 100px;
+      height: 24px;
+      border-radius: 10px;
     }
   }
 </style>
