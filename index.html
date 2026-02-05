@@ -70,13 +70,13 @@
     .activity-section { flex: 30; }
   }
 
-  /* --- ALERTS OVERLAY (THE FIX) --- */
+  /* --- ALERTS OVERLAY --- */
   .alerts-layer {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
     pointer-events: none; /* Clicks pass through */
     z-index: 50;
-    
+
     /* Centers the alert in the middle of the screen */
     display: flex;
     align-items: center;
@@ -91,21 +91,85 @@
     width: 100%;
     height: 100%;
   }
+
+  /* --- VIEWER COUNTERS (TOP RIGHT HUD) --- */
+  .viewers-hud{
+    position: absolute;
+    z-index: 60; /* above alerts (50) and labels (10) */
+    display: flex;
+    gap: 8px;
+    align-items: center;
+
+    top: calc(env(safe-area-inset-top) + 8px);
+    right: calc(env(safe-area-inset-right) + 12px);
+
+    /* Keep chat fully usable (taps pass through). 
+       Change to pointer-events:auto; if you want to tap the counters. */
+    pointer-events: none;
+  }
+
+  .viewer-card{
+    width: clamp(140px, 38vw, 190px);
+    height: clamp(30px, 5.5vh, 44px);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Override the global iframe rule for these small cards */
+  .viewer-card iframe{
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  @media (orientation: landscape){
+    .viewer-card{
+      width: clamp(130px, 18vw, 170px);
+      height: 34px;
+    }
+  }
 </style>
 </head>
 <body>
 
   <div class="container">
-    
+
+    <!-- VIEWER COUNTERS HUD (YOUTUBE + TWITCH) -->
+    <div class="viewers-hud">
+      <div class="viewer-card">
+        <iframe
+          src="https://botrix.live/widgets/viewers/?platform=youtube&bid=bVvmmN942GtNeeUg3AWhJg&font=Arial&rounded=1&showIcon=1&align=center&c=01010180#ffffff"
+          allow="autoplay"
+          scrolling="no"
+        ></iframe>
+      </div>
+
+      <div class="viewer-card">
+        <iframe
+          src="https://botrix.live/widgets/viewers/?platform=twitch&bid=bVvmmN942GtNeeUg3AWhJg&font=Arial&rounded=1&showIcon=1&align=center&c=01010180#ffffff"
+          allow="autoplay"
+          scrolling="no"
+        ></iframe>
+      </div>
+    </div>
+
+    <!-- ALERTS OVERLAY -->
     <div class="alerts-layer">
       <iframe src="https://botrix.live/widgets/alerts/?bid=bVvmmN942GtNeeUg3AWhJg" allow="autoplay; fullscreen"></iframe>
     </div>
 
+    <!-- CHAT -->
     <div class="chat-section">
       <div class="label"><div class="dot"></div> CHAT</div>
       <iframe src="https://botrix.live/widgets/chat/?bid=bVvmmN942GtNeeUg3AWhJg&bots=false&emojis=true&hideCommands=false&hideMessages=false&hideMessagesSeconds=10&widgetSize=21&trovo=false&twitch=true&youtube=true&kick=true&platformIcon=true&theme=default&ignoredUsers=&streamTogether=true&cheer=true&pointsReward=false&animation=none&showTimestamp=false&shadowThickness=1" allow="autoplay; fullscreen"></iframe>
     </div>
 
+    <!-- ACTIVITY FEED -->
     <div class="activity-section">
       <div class="label" style="top: 8px; left: 12px; background: rgba(50,50,50,0.5);">ACTIVITY FEED</div>
       <iframe src="https://botrix.live/widgets/activityfeed/?bid=bVvmmN942GtNeeUg3AWhJg" allow="autoplay; fullscreen"></iframe>
