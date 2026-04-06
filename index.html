@@ -5,7 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
 <title>Ultimate Stream Dashboard</title>
 <style>
-  /* --- BASE STYLES --- */
+  /* --- CSS VARIABLES & BASE STYLES --- */
+  :root {
+    --bg-color: #000000;
+    --panel-bg: #0a0a0a;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --accent-color: #00ff88;
+    --text-color: #ffffff;
+    --ui-bg: rgba(30, 30, 30, 0.85);
+  }
+
   * { box-sizing: border-box; }
   
   html, body { 
@@ -13,24 +22,27 @@
     padding: 0; 
     height: 100dvh; 
     width: 100vw;
-    background-color: #000000;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     overflow: hidden;
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
+    color: var(--text-color);
   }
   
+  /* --- LAYOUT CONTAINER --- */
   .container {
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Default Portrait */
     width: 100%; 
     height: 100%;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     position: relative;
+    transition: flex-direction 0.3s ease;
   }
+
+  /* Swapped Portrait */
+  .container.swapped { flex-direction: column-reverse; }
 
   iframe { 
     width: 100%; 
@@ -40,69 +52,44 @@
     background: transparent;
   }
 
-  /* --- PULL TO REFRESH --- */
-  .ptr-indicator {
-    position: absolute;
-    top: env(safe-area-inset-top);
-    left: 50%;
-    transform: translateX(-50%) translateY(-60px);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: rgba(30, 30, 30, 0.95);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.15);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    pointer-events: none;
+  /* --- SECTIONS --- */
+  .chat-section, .activity-section {
+    position: relative;
+    min-height: 0;
   }
 
-  .ptr-indicator.visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(12px);
+  .chat-section {
+    flex: 65; 
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .activity-section { flex: 35; }
+
+  .container.swapped .chat-section {
+    border-bottom: none;
+    border-top: 1px solid var(--border-color);
   }
 
-  .ptr-indicator.refreshing {
-    transform: translateX(-50%) translateY(12px);
-  }
+  /* --- LANDSCAPE MODE --- */
+  @media (orientation: landscape) {
+    .container { flex-direction: row; }
+    .container.swapped { flex-direction: row-reverse; }
+    
+    .chat-section { 
+      flex: 68; 
+      border-bottom: none;
+      border-right: 1px solid var(--border-color);
+    }
+    
+    .activity-section { flex: 32; }
 
-  .ptr-spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: #00ff88;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    display: none;
-  }
-
-  .ptr-indicator.refreshing .ptr-spinner {
-    display: block;
-  }
-
-  .ptr-indicator.refreshing .ptr-arrow {
-    display: none;
-  }
-
-  .ptr-arrow {
-    font-size: 16px;
-    transition: transform 0.2s ease;
-  }
-
-  .ptr-indicator.ready .ptr-arrow {
-    transform: rotate(180deg);
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+    .container.swapped .chat-section {
+      border-right: none;
+      border-left: 1px solid var(--border-color);
+    }
+    
+    .alerts-layer iframe { transform: scale(0.5); }
   }
 
   /* --- LABELS --- */
@@ -113,7 +100,6 @@
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px); 
     -webkit-backdrop-filter: blur(10px);
-    color: #fff; 
     padding: 5px 12px; 
     border-radius: 14px;
     font-size: 11px; 
@@ -130,48 +116,21 @@
   .dot { 
     height: 6px; 
     width: 6px; 
-    background-color: #00ff88; 
+    background-color: var(--accent-color); 
     border-radius: 50%; 
-    box-shadow: 0 0 6px #00ff88;
+    box-shadow: 0 0 6px var(--accent-color);
     animation: pulse 2s ease-in-out infinite;
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 6px #00ff88; }
-    50% { opacity: 0.6; box-shadow: 0 0 10px #00ff88; }
-  }
-
-  /* --- SECTIONS --- */
-  .chat-section {
-    flex: 65; 
-    position: relative;
-    background: #0a0a0a;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    min-height: 0;
-  }
-  
-  .activity-section {
-    flex: 35;
-    position: relative;
-    background: #000;
-    min-height: 0;
-  }
-
-  .activity-frame {
-    position: absolute;
-    top: 0; 
-    left: 0;
-    width: 100%; 
-    height: 100%;
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent-color); }
+    50% { opacity: 0.5; box-shadow: 0 0 2px var(--accent-color); }
   }
 
   /* --- ALERTS OVERLAY --- */
   .alerts-layer {
     position: absolute;
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%;
+    inset: 0; /* Shorthand for top/left/right/bottom 0 */
     pointer-events: none;
     z-index: 50;
     display: flex;
@@ -182,60 +141,124 @@
   .alerts-layer iframe {
     transform: scale(0.55); 
     transform-origin: center center;
-    width: 100%;
-    height: 100%;
   }
 
-  /* --- LANDSCAPE MODE --- */
-  @media (orientation: landscape) {
-    .container { 
-      flex-direction: row; 
-    }
-    
-    .chat-section {
-      flex: 68; 
-      border-bottom: none;
-      border-right: 1px solid rgba(255,255,255,0.08);
-    }
-    
-    .activity-section { 
-      flex: 32; 
-    }
-
-    .alerts-layer iframe {
-      transform: scale(0.5);
-    }
-  }
-
-  /* --- LOADING STATE --- */
-  .section-loading {
+  /* --- FLOATING UI CONTROLS --- */
+  .fab-container {
     position: absolute;
-    top: 50%;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .fab-btn {
+    background: var(--ui-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    transition: all 0.2s ease;
+  }
+
+  .fab-btn:active { transform: scale(0.9); }
+
+  .settings-menu {
+    background: var(--ui-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px) scale(0.95);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-origin: bottom right;
+  }
+
+  .settings-menu.open {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0) scale(1);
+  }
+
+  .settings-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .settings-btn:hover { background: rgba(255,255,255,0.2); }
+
+  /* --- PULL TO REFRESH --- */
+  .ptr-indicator {
+    position: absolute;
+    top: env(safe-area-inset-top);
     left: 50%;
-    transform: translate(-50%, -50%);
-    color: rgba(255,255,255,0.4);
-    font-size: 12px;
-    font-weight: 500;
-    z-index: 5;
+    transform: translateX(-50%) translateY(-60px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--ui-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    pointer-events: none;
   }
 
-  /* --- LARGE PHONES (iPhone Pro Max, etc) --- */
-  @media (min-height: 800px) and (orientation: portrait) {
-    .chat-section { flex: 62; }
-    .activity-section { flex: 38; }
+  .ptr-indicator.visible { opacity: 1; }
+  .ptr-indicator.refreshing .ptr-spinner { display: block; }
+  .ptr-indicator.refreshing .ptr-arrow { display: none; }
+  .ptr-arrow { font-size: 16px; transition: transform 0.2s ease; }
+  .ptr-indicator.ready .ptr-arrow { transform: rotate(180deg); }
+  
+  .ptr-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: var(--accent-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
   }
 
-  /* --- SMALL PHONES --- */
-  @media (max-height: 700px) and (orientation: portrait) {
-    .chat-section { flex: 70; }
-    .activity-section { flex: 30; }
-    .label { font-size: 10px; padding: 4px 10px; }
-  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
-  <!-- PULL TO REFRESH INDICATOR -->
   <div class="ptr-indicator" id="ptrIndicator">
     <span class="ptr-arrow">↓</span>
     <div class="ptr-spinner"></div>
@@ -243,74 +266,124 @@
   </div>
 
   <div class="container" id="mainContainer">
-
-    <!-- ALERTS OVERLAY -->
+    
     <div class="alerts-layer">
       <iframe 
         id="alertsFrame"
         src="https://botrix.live/widgets/alerts/?bid=bVvmmN942GtNeeUg3AWhJg" 
         allow="autoplay; fullscreen"
-        loading="lazy"
-      ></iframe>
+        loading="lazy">
+      </iframe>
     </div>
 
-    <!-- CHAT (Botrix Combined) -->
     <div class="chat-section">
       <div class="label"><div class="dot"></div> CHAT</div>
       <iframe 
         id="chatFrame"
         src="https://botrix.live/widgets/chat/?bid=bVvmmN942GtNeeUg3AWhJg&bots=false&emojis=true&hideCommands=false&hideMessages=false&hideMessagesSeconds=10&widgetSize=21&trovo=false&twitch=true&youtube=true&kick=true&platformIcon=true&theme=default&ignoredUsers=&streamTogether=true&cheer=true&pointsReward=false&animation=none&showTimestamp=false&shadowThickness=1" 
-        allow="autoplay; fullscreen"
-      ></iframe>
+        allow="autoplay; fullscreen">
+      </iframe>
     </div>
 
-    <!-- ACTIVITY FEED -->
     <div class="activity-section">
       <div class="label"><div class="dot"></div> ACTIVITY</div>
-      <div class="activity-frame">
-        <iframe 
-          id="activityFrame"
-          src="https://botrix.live/widgets/activityfeed/?bid=bVvmmN942GtNeeUg3AWhJg" 
-          allow="autoplay; fullscreen"
-        ></iframe>
-      </div>
+      <iframe 
+        id="activityFrame"
+        src="https://botrix.live/widgets/activityfeed/?bid=bVvmmN942GtNeeUg3AWhJg" 
+        allow="autoplay; fullscreen">
+      </iframe>
     </div>
 
+  </div>
+
+  <div class="fab-container">
+    <div class="settings-menu" id="settingsMenu">
+      <button class="settings-btn" id="btnSwapLayout">
+        <span>↔️</span> Swap Layout Order
+      </button>
+      <button class="settings-btn" id="btnFullscreen">
+        <span>⛶</span> Toggle Fullscreen
+      </button>
+      <button class="settings-btn" id="btnRefresh">
+        <span>🔄</span> Force Refresh Widgets
+      </button>
+    </div>
+    <div class="fab-btn" id="fabToggle">⚙️</div>
   </div>
 
   <script>
     /* ===== WAKE LOCK ===== */
     let wakeLock = null;
-    
     async function requestWakeLock() {
       if ('wakeLock' in navigator) {
-        try { 
-          wakeLock = await navigator.wakeLock.request('screen'); 
-        } catch (e) {
-          console.log('Wake lock not available');
-        }
+        try { wakeLock = await navigator.wakeLock.request('screen'); } 
+        catch (e) { console.log('Wake lock not available'); }
       }
     }
-    
     requestWakeLock();
-    
     document.addEventListener('visibilitychange', async () => {
       if (wakeLock !== null && document.visibilityState === 'visible') {
         await requestWakeLock();
       }
     });
 
-    /* ===== PULL TO REFRESH ===== */
+    /* ===== UI CONTROLS & LOCAL STORAGE ===== */
+    const container = document.getElementById('mainContainer');
+    const fabToggle = document.getElementById('fabToggle');
+    const settingsMenu = document.getElementById('settingsMenu');
+    const btnSwapLayout = document.getElementById('btnSwapLayout');
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    const btnRefresh = document.getElementById('btnRefresh');
+
+    // Load saved layout preference
+    if (localStorage.getItem('layoutSwapped') === 'true') {
+      container.classList.add('swapped');
+    }
+
+    // Toggle Settings Menu
+    fabToggle.addEventListener('click', () => {
+      settingsMenu.classList.toggle('open');
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.fab-container')) {
+        settingsMenu.classList.remove('open');
+      }
+    });
+
+    // Swap Layout Function
+    btnSwapLayout.addEventListener('click', () => {
+      container.classList.toggle('swapped');
+      const isSwapped = container.classList.contains('swapped');
+      localStorage.setItem('layoutSwapped', isSwapped);
+    });
+
+    // Fullscreen Function
+    btnFullscreen.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.log(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+      settingsMenu.classList.remove('open');
+    });
+
+    // Manual Refresh Function
+    btnRefresh.addEventListener('click', () => {
+      triggerRefresh();
+      settingsMenu.classList.remove('open');
+    });
+
+    /* ===== PULL TO REFRESH LOGIC ===== */
     const ptrIndicator = document.getElementById('ptrIndicator');
     const ptrText = ptrIndicator.querySelector('.ptr-text');
-    const container = document.getElementById('mainContainer');
     
-    let touchStartY = 0;
-    let touchCurrentY = 0;
-    let isPulling = false;
-    let isRefreshing = false;
-    const pullThreshold = 80;
-    const maxPull = 120;
+    let touchStartY = 0, touchCurrentY = 0;
+    let isPulling = false, isRefreshing = false;
+    const pullThreshold = 80, maxPull = 120;
 
     container.addEventListener('touchstart', (e) => {
       if (isRefreshing) return;
@@ -320,13 +393,10 @@
 
     container.addEventListener('touchmove', (e) => {
       if (!isPulling || isRefreshing) return;
-      
       touchCurrentY = e.touches[0].clientY;
       const pullDistance = touchCurrentY - touchStartY;
       
       if (pullDistance > 0 && pullDistance < maxPull) {
-        const progress = Math.min(pullDistance / pullThreshold, 1);
-        
         ptrIndicator.classList.add('visible');
         ptrIndicator.style.transform = `translateX(-50%) translateY(${12 + (pullDistance * 0.3)}px)`;
         
@@ -342,14 +412,10 @@
 
     container.addEventListener('touchend', () => {
       if (!isPulling || isRefreshing) return;
-      
       const pullDistance = touchCurrentY - touchStartY;
       
-      if (pullDistance >= pullThreshold) {
-        triggerRefresh();
-      } else {
-        resetPullIndicator();
-      }
+      if (pullDistance >= pullThreshold) triggerRefresh();
+      else resetPullIndicator();
       
       isPulling = false;
       touchStartY = 0;
@@ -357,16 +423,24 @@
     }, { passive: true });
 
     function triggerRefresh() {
+      if(isRefreshing) return;
       isRefreshing = true;
+      ptrIndicator.classList.add('visible', 'refreshing');
       ptrIndicator.classList.remove('ready');
-      ptrIndicator.classList.add('refreshing');
       ptrIndicator.style.transform = 'translateX(-50%) translateY(12px)';
       ptrText.textContent = 'Refreshing...';
       
-      // Refresh all iframes
-      refreshAllWidgets();
+      // Refresh all iframes by reassigning src
+      ['chatFrame', 'activityFrame', 'alertsFrame'].forEach(id => {
+        const iframe = document.getElementById(id);
+        if (iframe) {
+          const src = iframe.src;
+          iframe.src = '';
+          setTimeout(() => iframe.src = src, 50);
+        }
+      });
       
-      // Reset after delay
+      // Reset UI after 1.5s
       setTimeout(() => {
         ptrText.textContent = 'Done!';
         setTimeout(() => {
@@ -379,33 +453,14 @@
     function resetPullIndicator() {
       ptrIndicator.classList.remove('visible', 'ready', 'refreshing');
       ptrIndicator.style.transform = 'translateX(-50%) translateY(-60px)';
-      ptrText.textContent = 'Pull to refresh';
+      setTimeout(() => ptrText.textContent = 'Pull to refresh', 300);
     }
 
-    function refreshAllWidgets() {
-      const iframes = ['chatFrame', 'activityFrame', 'alertsFrame'];
-      
-      iframes.forEach(id => {
-        const iframe = document.getElementById(id);
-        if (iframe) {
-          const src = iframe.src;
-          iframe.src = '';
-          setTimeout(() => {
-            iframe.src = src;
-          }, 100);
-        }
-      });
-    }
-
-    /* ===== PREVENT BOUNCE/OVERSCROLL ===== */
+    /* Prevent Overscroll/Bounce */
     document.body.addEventListener('touchmove', (e) => {
-      if (e.target.closest('iframe')) return;
-      // Allow pull-to-refresh zone
-      if (isPulling) return;
+      if (e.target.closest('iframe') || isPulling) return;
       e.preventDefault();
     }, { passive: false });
-
   </script>
-
 </body>
 </html>
